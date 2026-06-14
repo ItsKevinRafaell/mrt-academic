@@ -1,0 +1,1266 @@
+openapi: 3.0.3
+info:
+  title: MRT Academic Management API
+  description: |
+    Backend API untuk MRT Academic Management App.
+
+    ## Authentication
+    Semua endpoint kecuali `/api/auth/login`, `/api/auth/register`, `/api/health`, dan `/api/docs` memerlukan header:
+    ```
+    Authorization: Bearer <token>
+    ```
+
+    ## Base Response
+    Semua response mengikuti format:
+    - Success: `{ "success": true, "message": "...", "data": {...} }`
+    - Error: `{ "success": false, "message": "...", "error_code": "ERR_..." }`
+
+    ## Role-Based Access
+    - **mahasiswa**: Read access, update task progress
+    - **super_admin**: Full access (create/update/delete courses, sessions, materials, tasks)
+  version: 1.0.0
+  contact:
+    name: MRT Dev Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://your-production-domain.com
+    description: Production
+
+tags:
+  - name: Auth
+    description: Authentication & user management
+  - name: Health
+    description: System health checks
+  - name: Courses
+    description: Mata kuliah management
+  - name: Sessions
+    description: Session management per course
+  - name: Materials
+    description: Material pembelajaran
+  - name: Tasks
+    description: Tugas & progress tracking
+
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  database:
+                    type: string
+                    example: ok
+        '503':
+          description: System unhealthy
+
+  /api/docs:
+    get:
+      tags: [Health]
+      summary: Get OpenAPI spec
+      security: []
+      responses:
+        '200':
+          description: OpenAPI YAML spec
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@test.com"
+                password:
+                  type: string
+                  example: "admin123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          token:
+                            type: string
+                            example: "eyJhbGciOiJIUzI1NiIs..."
+                          user:
+                            $ref: '#/components/schemas/User'
+                          role:
+                            type: string
+                            example: "super_admin"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      description: Register user baru (default role: mahasiswa). Gunakan `promote-admin` untuk promote ke super_admin.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nim, full_name, email, password]
+              properties:
+                nim:
+                  type: string
+                  example: "12345678"
+                full_name:
+                  type: string
+                  example: "John Doe"
+                email:
+                  type: string
+                  format: email
+                  example: "john@student.ac.id"
+                password:
+                  type: string
+                  minLength: 6
+                  example: "password123"
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/users/me:
+    get:
+      tags: [Auth]
+      summary: Get current user info
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user:
+                            $ref: '#/components/schemas/User'
+                          role:
+                            type: string
+                            example: "mahasiswa"
+
+  /api/courses:
+    get:
+      tags: [Courses]
+      summary: List all courses
+      responses:
+        '200':
+          description: List of courses
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Course'
+    post:
+      tags: [Courses]
+      summary: Create course (super_admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseInput'
+      responses:
+        '201':
+          description: Course created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Course'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/courses/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Courses]
+      summary: Get course detail
+      responses:
+        '200':
+          description: Course detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Course'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Courses]
+      summary: Update course (super_admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseInput'
+      responses:
+        '200':
+          description: Course updated
+
+    delete:
+      tags: [Courses]
+      summary: Delete course (super_admin only)
+      responses:
+        '200':
+          description: Course deleted
+
+  /api/courses/{course_id}/sessions:
+    parameters:
+      - name: course_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Sessions]
+      summary: List sessions for a course
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Session'
+
+    post:
+      tags: [Sessions]
+      summary: Create session (super_admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionInput'
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Session'
+
+  /api/sessions/{session_id}:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags: [Sessions]
+      summary: Update session (super_admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionInput'
+      responses:
+        '200':
+          description: Session updated
+
+    delete:
+      tags: [Sessions]
+      summary: Delete session (super_admin only)
+      responses:
+        '200':
+          description: Session deleted
+
+  /api/courses/{course_id}/materials:
+    parameters:
+      - name: course_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Materials]
+      summary: Get all materials grouped by session
+      responses:
+        '200':
+          description: Materials grouped by session
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            course_id:
+                              type: integer
+                            number:
+                              type: integer
+                            title:
+                              type: string
+                            description:
+                              type: string
+                            Materials:
+                              type: array
+                              items:
+                                $ref: '#/components/schemas/Material'
+
+  /api/materials:
+    post:
+      tags: [Materials]
+      summary: Add material (super_admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaterialInput'
+      responses:
+        '201':
+          description: Material created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Material'
+
+  /api/materials/{material_id}:
+    parameters:
+      - name: material_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags: [Materials]
+      summary: Update material (super_admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaterialInput'
+      responses:
+        '200':
+          description: Material updated
+
+    delete:
+      tags: [Materials]
+      summary: Delete material (super_admin only)
+      responses:
+        '200':
+          description: Material deleted
+
+  /api/courses/{course_id}/tasks:
+    parameters:
+      - name: course_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Tasks]
+      summary: List tasks for a course
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Task'
+
+    post:
+      tags: [Tasks]
+      summary: Create task (super_admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Task'
+
+  /api/tasks/{task_id}:
+    parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags: [Tasks]
+      summary: Update task (super_admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+      responses:
+        '200':
+          description: Task updated
+
+    delete:
+      tags: [Tasks]
+      summary: Delete task (super_admin only)
+      responses:
+        '200':
+          description: Task deleted
+
+  /api/tasks/{task_id}/progress:
+    parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    patch:
+      tags: [Tasks]
+      summary: Update task progress (current user)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [completed]
+              properties:
+                completed:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Progress updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TaskProgress'
+
+  /api/grades:
+    post:
+      tags: [Grades]
+      summary: Create or update grade
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GradeInput'
+      responses:
+        '201':
+          description: Grade created/updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Grade'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    get:
+      tags: [Grades]
+      summary: Get current user's grades
+      responses:
+        '200':
+          description: List of grades
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/GradeWithCourse'
+
+  /api/grades/gpa:
+    get:
+      tags: [Grades]
+      summary: Calculate cumulative GPA
+      responses:
+        '200':
+          description: GPA summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GPASummary'
+
+  /api/grades/{course_id}:
+    parameters:
+      - name: course_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags: [Grades]
+      summary: Update grade for specific course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [grade]
+              properties:
+                grade:
+                  type: string
+                  enum: [A, A-, B+, B, B-, C+, C, D, E]
+                  example: "B+"
+      responses:
+        '200':
+          description: Grade updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Grade'
+
+  /api/events:
+    get:
+      tags: [Events]
+      summary: Get all academic events
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AcademicEvent'
+    post:
+      tags: [Events]
+      summary: Create academic event (super_admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventInput'
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AcademicEvent'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/events/upcoming:
+    get:
+      tags: [Events]
+      summary: Get upcoming events (future events only)
+      responses:
+        '200':
+          description: List of upcoming events
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AcademicEvent'
+
+  /api/events/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Events]
+      summary: Get event by ID
+      responses:
+        '200':
+          description: Event details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AcademicEvent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Events]
+      summary: Update event (super_admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventInput'
+      responses:
+        '200':
+          description: Event updated
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [Events]
+      summary: Delete event (super_admin only)
+      responses:
+        '200':
+          description: Event deleted
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/dashboard/summary:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard summary for current user
+      responses:
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DashboardSummary'
+
+  /api/search/index:
+    get:
+      tags: [Search]
+      summary: Get full search index
+      responses:
+        '200':
+          description: Complete search index
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SearchIndex'
+
+  /api/search:
+    get:
+      tags: [Search]
+      summary: Search across courses, sessions, and tasks
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+          example: "struktur"
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SearchResults'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nim:
+          type: string
+          example: "12345678"
+        full_name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          example: "john@student.ac.id"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Course:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+          example: "CS101"
+        name:
+          type: string
+          example: "Struktur Data"
+        sks:
+          type: integer
+          example: 4
+        description:
+          type: string
+        instructors:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CourseInput:
+      type: object
+      required: [code, name, sks]
+      properties:
+        code:
+          type: string
+          example: "CS101"
+        name:
+          type: string
+          example: "Struktur Data"
+        sks:
+          type: integer
+          example: 4
+        description:
+          type: string
+        instructors:
+          type: array
+          items:
+            type: string
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: integer
+        course_id:
+          type: integer
+        number:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Introduction to OOP"
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SessionInput:
+      type: object
+      required: [number, title]
+      properties:
+        number:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+
+    Material:
+      type: object
+      properties:
+        id:
+          type: integer
+        session_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [pdf, link, video, image]
+        url:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    MaterialInput:
+      type: object
+      required: [session_id, title, type, url]
+      properties:
+        session_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [pdf, link, video, image]
+        url:
+          type: string
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        course_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        deadline:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TaskInput:
+      type: object
+      required: [title, deadline]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        deadline:
+          type: string
+          format: date-time
+
+    TaskProgress:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        task_id:
+          type: integer
+        completed:
+          type: boolean
+
+    Grade:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+          format: uuid
+        course_id:
+          type: integer
+        grade:
+          type: string
+          enum: [A, A-, B+, B, B-, C+, C, D, E]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    GradeInput:
+      type: object
+      required: [course_id, grade]
+      properties:
+        course_id:
+          type: integer
+        grade:
+          type: string
+          enum: [A, A-, B+, B, B-, C+, C, D, E]
+          example: "A"
+
+    GradeWithCourse:
+      allOf:
+        - $ref: '#/components/schemas/Grade'
+        - type: object
+          properties:
+            course:
+              $ref: '#/components/schemas/Course'
+
+    GPASummary:
+      type: object
+      properties:
+        cumulative_gpa:
+          type: number
+          format: float
+          example: 3.75
+        total_sks:
+          type: integer
+          example: 8
+        per_cawu:
+          type: array
+          items:
+            type: object
+            properties:
+              cawu_name:
+                type: string
+                example: "Cawu 1"
+              gpa:
+                type: number
+                format: float
+                example: 4.0
+              sks:
+                type: integer
+                example: 4
+
+    AcademicEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+          example: "Midterm Exam"
+        description:
+          type: string
+          example: "Midterm examination period"
+        event_date:
+          type: string
+          format: date-time
+        event_type:
+          type: string
+          example: "exam"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    EventInput:
+      type: object
+      required: [title, event_date, event_type]
+      properties:
+        title:
+          type: string
+          example: "Midterm Exam"
+        description:
+          type: string
+          example: "Midterm examination period"
+        event_date:
+          type: string
+          format: date-time
+          example: "2026-03-15T00:00:00Z"
+        event_type:
+          type: string
+          example: "exam"
+
+    DashboardSummary:
+      type: object
+      properties:
+        total_courses:
+          type: integer
+          example: 3
+        pending_tasks:
+          type: integer
+          example: 2
+        completed_tasks:
+          type: integer
+          example: 5
+        upcoming_events:
+          type: array
+          items:
+            $ref: '#/components/schemas/AcademicEvent'
+        recent_activities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+
+    Activity:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        type:
+          type: string
+          example: "completed_task"
+        title:
+          type: string
+          example: "Tugas 1: Binary Tree"
+        course_name:
+          type: string
+          example: "Struktur Data"
+
+    SearchIndex:
+      type: object
+      properties:
+        courses:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchItem'
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchItem'
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchItem'
+
+    SearchItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [course, session, task]
+          example: "course"
+        title:
+          type: string
+          example: "CS101 - Struktur Data"
+        description:
+          type: string
+          example: "Fundamental data structures"
+
+    SearchResults:
+      type: object
+      properties:
+        courses:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchItem'
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchItem'
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchItem'
+
+    BaseSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation successful"
+        data:
+          type: object
+
+    BaseError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        error_code:
+          type: string
+          enum: [ERR_VALIDATION, ERR_UNAUTHORIZED, ERR_FORBIDDEN, ERR_NOT_FOUND, ERR_ALREADY_EXISTS, ERR_TOKEN_EXPIRED, ERR_INVALID_TOKEN, ERR_INTERNAL_SERVER]
+        data:
+          type: object
+          nullable: true
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BaseError'
+          example:
+            success: false
+            message: "Email is required"
+            error_code: "ERR_VALIDATION"
+            data: null
+    Unauthorized:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BaseError'
+          example:
+            success: false
+            message: "Invalid email or password"
+            error_code: "ERR_UNAUTHORIZED"
+            data: null
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BaseError'
+          example:
+            success: false
+            message: "Insufficient permissions"
+            error_code: "ERR_FORBIDDEN"
+            data: null
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BaseError'
+          example:
+            success: false
+            message: "Course not found"
+            error_code: "ERR_NOT_FOUND"
+            data: null
+
+security:
+  - BearerAuth: []

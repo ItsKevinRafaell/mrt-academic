@@ -1,0 +1,25 @@
+# .gitignore
+
+# Environment
+.env
+.env.local
+
+# Go binaries
+bin/
+*.exe
+*.test
+*.out
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+postgres_data/
+
+# Logs
+*.log
