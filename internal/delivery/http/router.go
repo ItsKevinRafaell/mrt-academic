@@ -59,6 +59,7 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 func (r *Router) Setup() {
 	healthHandler := handler.NewHealthHandler(r.db)
 	docsHandler := handler.NewDocsHandler()
+	swaggerHandler := handler.NewSwaggerHandler()
 	authHandler := handler.NewAuthHandler(r.authUsecase)
 	courseHandler := handler.NewCourseHandler(r.courseUsecase)
 	gradeHandler := handler.NewGradeHandler(r.gradeUsecase)
@@ -71,6 +72,7 @@ func (r *Router) Setup() {
 
 	r.mux.HandleFunc("GET /api/health", healthHandler.Check)
 	r.mux.HandleFunc("GET /api/docs", docsHandler.ServeSpec)
+	r.mux.HandleFunc("GET /api/swagger", swaggerHandler.ServeUI)
 
 	r.mux.HandleFunc("POST /api/auth/register", authHandler.Register)
 	r.mux.HandleFunc("POST /api/auth/login", authHandler.Login)
