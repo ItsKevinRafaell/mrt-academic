@@ -45,9 +45,10 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
   const loadItems = useCallback(async () => {
     try {
       const data = await getBoardGalleryBySession(sessionId);
-      setItems(data || []);
+      setItems(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load board gallery:', error);
+      setItems([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
