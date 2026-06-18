@@ -225,8 +225,8 @@ export default function IPKPage() {
         )}
       </div>
 
-      {/* Cawu Selector & IP Summary - Sticky */}
-      <div className="sticky top-4 z-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Cawu Selector & IP Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="md:col-span-1">
           <div className="p-4">
             <label className="text-sm font-medium mb-2 block">Catur Wulan</label>

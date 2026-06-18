@@ -49,11 +49,20 @@ export default function SessionDetailPage() {
         getMaterialsBySession(sessionId),
         getCourse(courseId),
       ]);
+
+      if (!sessionData) {
+        setSession(null);
+        return;
+      }
+
       setSession(sessionData);
       setMaterials(materialsData || []);
-      setCourseName(courseData.name || "");
+      if (courseData) {
+        setCourseName(courseData.name || "");
+      }
     } catch (error) {
       console.error("Failed to load session:", error);
+      setSession(null);
     } finally {
       setLoading(false);
     }
