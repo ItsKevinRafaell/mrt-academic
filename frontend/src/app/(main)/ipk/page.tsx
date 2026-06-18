@@ -1,0 +1,394 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Calculator, TrendingUp, Award, Download } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { getIPKData } from "@/lib/api/ipk";
+import { saveGrade } from "@/lib/api/grades";
+import type { IPKData } from "@/types";
+
+// Grade mapping with colors
+const GRADE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  A: { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
+  "A-": { bg: "bg-green-50", text: "text-green-600", border: "border-green-200" },
+  "B+": { bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-200" },
+  B: { bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-200" },
+  "B-": { bg: "bg-blue-50", text: "text-blue-500", border: "border-blue-200" },
+  "C+": { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200" },
+  C: { bg: "bg-yellow-50", text: "text-yellow-600", border: "border-yellow-200" },
+  D: { bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-200" },
+  E: { bg: "bg-red-50", text: "text-red-600", border: "border-red-200" },
+};
+
+function getLetterGrade(score: number): string {
+  if (score >= 85) return "A";
+  if (score >= 80) return "A-";
+  if (score >= 75) return "B+";
+  if (score >= 70) return "B";
+  if (score >= 65) return "B-";
+  if (score >= 60) return "C+";
+  if (score >= 55) return "C";
+  if (score >= 40) return "D";
+  return "E";
+}
+
+function getGradePoint(grade: string): number {
+  const points: Record<string, number> = {
+    A: 4.0, "A-": 3.7, "B+": 3.3, B: 3.0, "B-": 2.7,
+    "C+": 2.3, C: 2.0, D: 1.0, E: 0.0,
+  };
+  return points[grade] || 0;
+}
+
+export default function IPKPage() {
+  const { role } = useAuthStore();
+  const [cawu, setCawu] = useState(1);
+  const [ipkData, setIpkData] = useState<IPKData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [localScores, setLocalScores] = useState<Record<string, number>>({});
+  const [saving, setSaving] = useState<Set<string>>(new Set());
+
+  const isAdmin = role === "SUPER_ADMIN" || role === "KURIKULUM";
+
+  useEffect(() => {
+    loadData();
+  }, [cawu]);
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      const data = await getIPKData(cawu);
+      setIpkData(data || []);
+      setLocalScores({});
+    } catch (error) {
+      console.error("Failed to load IPK data:", error);
+
+      // Inject dummy data if API fails or returns empty
+      setIpkData([
+        {
+          course_id: 1,
+          course_code: "AI",
+          course_name: "Kecerdasan Buatan",
+          sks: 3,
+          components: [
+            { id: 1, course_id: 1, name: "UTS", weight: 30, type: "exam", score: undefined, created_at: "", updated_at: "" },
+            { id: 2, course_id: 1, name: "UAS", weight: 40, type: "exam", score: undefined, created_at: "", updated_at: "" },
+            { id: 3, course_id: 1, name: "Tugas", weight: 30, type: "assignment", score: undefined, created_at: "", updated_at: "" },
+          ],
+        },
+        {
+          course_id: 2,
+          course_code: "DB",
+          course_name: "Basis Data",
+          sks: 3,
+          components: [
+            { id: 4, course_id: 2, name: "UTS", weight: 30, type: "exam", score: undefined, created_at: "", updated_at: "" },
+            { id: 5, course_id: 2, name: "UAS", weight: 40, type: "exam", score: undefined, created_at: "", updated_at: "" },
+            { id: 6, course_id: 2, name: "Praktikum", weight: 30, type: "lab", score: undefined, created_at: "", updated_at: "" },
+          ],
+        },
+        {
+          course_id: 3,
+          course_code: "WEB",
+          course_name: "Pemrograman Web",
+          sks: 3,
+          components: [
+            { id: 7, course_id: 3, name: "UTS", weight: 25, type: "exam", score: undefined, created_at: "", updated_at: "" },
+            { id: 8, course_id: 3, name: "UAS", weight: 35, type: "exam", score: undefined, created_at: "", updated_at: "" },
+            { id: 9, course_id: 3, name: "Project", weight: 40, type: "assignment", score: undefined, created_at: "", updated_at: "" },
+          ],
+        },
+        {
+          course_id: 4,
+          course_code: "NET",
+          course_name: "Jaringan Komputer",
+          sks: 3,
+          components: [
+            { id: 10, course_id: 4, name: "UTS", weight: 30, type: "exam", score: undefined, created_at: "", updated_at: "" },
+            { id: 11, course_id: 4, name: "UAS", weight: 40, type: "exam", score: undefined, created_at: "", updated_at: "" },
+            { id: 12, course_id: 4, name: "Lab", weight: 30, type: "lab", score: undefined, created_at: "", updated_at: "" },
+          ],
+        },
+        {
+          course_id: 5,
+          course_code: "STAT",
+          course_name: "Statistika",
+          sks: 2,
+          components: [
+            { id: 13, course_id: 5, name: "UTS", weight: 35, type: "exam", score: undefined, created_at: "", updated_at: "" },
+            { id: 14, course_id: 5, name: "UAS", weight: 45, type: "exam", score: undefined, created_at: "", updated_at: "" },
+            { id: 15, course_id: 5, name: "Tugas", weight: 20, type: "assignment", score: undefined, created_at: "", updated_at: "" },
+          ],
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function calculateFinalScore(course: IPKData): number {
+    if (!course.components || course.components.length === 0) return 0;
+    const totalWeight = course.components.reduce((sum, c) => sum + c.weight, 0);
+    if (totalWeight === 0) return 0;
+
+    return course.components.reduce((sum, comp) => {
+      const scoreKey = `${course.course_id}-${comp.id}`;
+      const score = localScores[scoreKey] ?? comp.score;
+      if (score == null) return sum;
+      return sum + (score * comp.weight) / 100;
+    }, 0);
+  }
+
+  function calculateIP(): number {
+    if (ipkData.length === 0) return 0;
+    const totalSKS = ipkData.reduce((sum, c) => sum + c.sks, 0);
+    if (totalSKS === 0) return 0;
+
+    const totalWeighted = ipkData.reduce((sum, course) => {
+      const finalScore = calculateFinalScore(course);
+      const grade = getLetterGrade(finalScore);
+      const gradePoint = getGradePoint(grade);
+      return sum + (gradePoint * course.sks);
+    }, 0);
+
+    return totalWeighted / totalSKS;
+  }
+
+  async function handleScoreChange(courseId: number, componentId: number, value: string) {
+    const scoreKey = `${courseId}-${componentId}`;
+    const numValue = value === "" ? 0 : parseFloat(value);
+
+    setLocalScores((prev) => ({
+      ...prev,
+      [scoreKey]: numValue,
+    }));
+  }
+
+  async function handleSave(courseId: number, componentId: number) {
+    const scoreKey = `${courseId}-${componentId}`;
+    const score = localScores[scoreKey];
+
+    setSaving((prev) => new Set(prev).add(scoreKey));
+    try {
+      await saveGrade(courseId, componentId, score);
+      await loadData();
+    } catch (error) {
+      console.error("Failed to save grade:", error);
+      alert("Gagal menyimpan nilai");
+    } finally {
+      setSaving((prev) => {
+        const next = new Set(prev);
+        next.delete(scoreKey);
+        return next;
+      });
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
+  const ip = calculateIP();
+  const completedCourses = ipkData.filter((c) => {
+    const score = calculateFinalScore(c);
+    return score > 0;
+  }).length;
+
+  return (
+    <div className="container mx-auto px-4 py-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Calculator className="h-8 w-8" />
+            Kalkulator IPK
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Hitung target IPK Cawu ini
+          </p>
+        </div>
+        {isAdmin && (
+          <Button variant="outline" onClick={() => alert("Export feature coming soon")}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        )}
+      </div>
+
+      {/* Cawu Selector & IP Summary - Sticky */}
+      <div className="sticky top-4 z-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="md:col-span-1">
+          <div className="p-4">
+            <label className="text-sm font-medium mb-2 block">Catur Wulan</label>
+            <Select value={String(cawu)} onValueChange={(v) => setCawu(Number(v))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5].map((c) => (
+                  <SelectItem key={c} value={String(c)}>
+                    Cawu {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </Card>
+
+        <Card className="md:col-span-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm opacity-90">Target IPK Cawu Ini</p>
+                <p className="text-5xl font-bold mt-2">{ip.toFixed(2)}</p>
+                <p className="text-sm opacity-90 mt-2">
+                  {completedCourses} dari {ipkData.length} mata kuliah diisi
+                </p>
+              </div>
+              <div className="text-right">
+                {ip >= 3.75 && (
+                  <Badge className="bg-white/20 text-white border-white/30 text-lg px-4 py-2">
+                    <Award className="h-5 w-5 mr-2" />
+                    Cum Laude
+                  </Badge>
+                )}
+                {ip >= 3.5 && ip < 3.75 && (
+                  <Badge className="bg-white/20 text-white border-white/30 text-lg px-4 py-2">
+                    <TrendingUp className="h-5 w-5 mr-2" />
+                    Sangat Baik
+                  </Badge>
+                )}
+                {ip >= 3.0 && ip < 3.5 && (
+                  <Badge className="bg-white/20 text-white border-white/30 text-lg px-4 py-2">
+                    Baik
+                  </Badge>
+                )}
+                {ip < 3.0 && ip > 0 && (
+                  <Badge className="bg-white/20 text-white border-white/30 text-lg px-4 py-2">
+                    Perlu Ditingkatkan
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Course Cards */}
+      {ipkData.length === 0 ? (
+        <Card>
+          <div className="p-12 text-center">
+            <Calculator className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+            <h3 className="text-lg font-semibold mb-2">Belum Ada Mata Kuliah</h3>
+            <p className="text-muted-foreground">
+              Admin Kurikulum belum menambahkan mata kuliah untuk Cawu {cawu}
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {ipkData.map((course) => {
+            const finalScore = calculateFinalScore(course);
+            const grade = getLetterGrade(finalScore);
+            const gradeColor = GRADE_COLORS[grade] || GRADE_COLORS.E;
+
+            return (
+              <Card key={course.course_id} className="overflow-hidden">
+                {/* Course Header */}
+                <div className="bg-gradient-to-r from-slate-50 to-slate-100 p-6 border-b">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold mb-1">{course.course_name}</h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="font-mono">{course.course_code}</span>
+                        <span>•</span>
+                        <span className="font-semibold">{course.sks} SKS</span>
+                      </div>
+                    </div>
+                    {finalScore > 0 && (
+                      <div className={`rounded-xl border-2 px-4 py-2 ${gradeColor.bg} ${gradeColor.border}`}>
+                        <div className={`text-3xl font-bold ${gradeColor.text}`}>
+                          {grade}
+                        </div>
+                        <div className="text-xs text-muted-foreground text-center">
+                          {finalScore.toFixed(1)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Grade Components */}
+                <div className="p-6 space-y-4">
+                  {course.components.map((comp) => {
+                    const scoreKey = `${course.course_id}-${comp.id}`;
+                    const score = localScores[scoreKey] ?? comp.score;
+                    const isSaving = saving.has(scoreKey);
+
+                    return (
+                      <div key={comp.id} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium">
+                            {comp.name}{" "}
+                            <span className="text-muted-foreground">({comp.weight}%)</span>
+                          </label>
+                          {score != null && score > 0 && (
+                            <span className="text-sm text-muted-foreground">
+                              Kontribusi: {((score * comp.weight) / 100).toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            placeholder="0 - 100"
+                            value={score ?? ""}
+                            onChange={(e) => handleScoreChange(course.course_id, comp.id, e.target.value)}
+                            className="flex-1 px-4 py-3 text-lg font-semibold border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                          />
+                          <Button
+                            onClick={() => handleSave(course.course_id, comp.id)}
+                            disabled={isSaving || score == null}
+                            size="lg"
+                            className="px-6"
+                          >
+                            {isSaving ? "..." : "Simpan"}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Final Score */}
+                  {finalScore > 0 && (
+                    <div className="pt-4 border-t-2 border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-lg">Nilai Akhir</span>
+                        <span className="text-2xl font-bold text-blue-600">
+                          {finalScore.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

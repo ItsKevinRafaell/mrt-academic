@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-MIGRATIONS_DIR="${MIGRATIONS_DIR:-./migrations}"
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-./backend/migrations}"
 CONTAINER_NAME="${CONTAINER_NAME:-mrt-postgres}"
 DB_USER="${DB_USER:-mrt}"
 DB_NAME="${DB_NAME:-mrt_db}"

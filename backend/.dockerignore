@@ -1,0 +1,53 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+server
+mrt-server
+
+# Test
+*.test
+*.out
+coverage/
+
+# Go workspace
+go.work
+
+# Dependencies
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Documentation (not needed in image)
+*.md
+
+# Scripts (not needed in image)
+scripts/
+
+# Docker files (not needed in image)
+Dockerfile
+docker-compose.yml
+.dockerignore

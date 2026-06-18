@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Modern SaaS Design System - Ultra Clean */
+    --background: 210 40% 98%; /* Slate-50 #F8FAFC */
+    --foreground: 222 47% 11%; /* Slate-900 #0F172A */
+
+    --card: 0 0% 100%; /* White #FFFFFF */
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 91% 53%; /* Blue-600 #2563EB */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%; /* Slate-100 #F1F5F9 */
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%; /* Slate-100 */
+    --muted-foreground: 215 16% 47%; /* Slate-500 #64748B */
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%; /* Slate-200 #E2E8F0 */
+    --input: 214 32% 91%;
+    --ring: 217 91% 53%; /* Blue-600 */
+
+    --radius: 0.75rem; /* 12px = rounded-xl */
+
+    /* Semantic colors */
+    --success: 142 76% 36%;
+    --warning: 45 93% 47%;
+    --info: 217 91% 53%;
+  }
+
+  .dark {
+    --background: 222 47% 6%; /* Slate-950 */
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 8%; /* Slate-900 */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%; /* Blue-500 */
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 217 33% 17%; /* Slate-800 */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar - subtle */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+}
+
+@layer components {
+  /* Bento Box card style */
+  .bento-card {
+    @apply bg-card border border-border rounded-2xl overflow-hidden;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:shadow-md hover:shadow-black/5;
+  }
+
+  /* Glass effect for floating elements */
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl;
+    @apply border border-white/20;
+  }
+
+  /* Sliding tab indicator */
+  .tab-indicator {
+    @apply absolute bottom-0 h-0.5 bg-primary rounded-full;
+    @apply transition-all duration-300 ease-out;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400;
+  }
+}

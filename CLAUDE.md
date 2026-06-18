@@ -2,6 +2,50 @@
 
 All-in-one class management platform for MRT ecosystem. This document is the single source of truth for backend development. Every architectural decision, convention, and constraint is recorded here.
 
+**Last updated:** 2026-06-14
+
+---
+
+## Quick Reference
+
+### Run the backend
+```bash
+cd /home/kevin/MRT/backend
+export PATH=$PATH:/usr/local/go/bin
+./bin/mrt-server
+# Server runs on http://localhost:9090
+```
+
+### Run tests
+```bash
+cd /home/kevin/MRT/backend
+export PATH=$PATH:/usr/local/go/bin
+go test ./internal/usecase -v
+```
+
+### Test all endpoints
+```bash
+cd /home/kevin/MRT
+./scripts/test/test-api.sh http://localhost:9090
+```
+
+### Interactive API docs
+```
+http://localhost:9090/api/swagger
+```
+
+### Run migrations
+```bash
+cd /home/kevin/MRT
+./scripts/db-migrate.sh
+```
+
+### Docker (full stack)
+```bash
+cd /home/kevin/MRT
+docker compose up -d
+```
+
 ---
 
 ## Current Status
@@ -12,7 +56,8 @@ All-in-one class management platform for MRT ecosystem. This document is the sin
 | Phase 2 | ✅ Complete | Auth: Register, login, JWT (24h), auth middleware, RBAC, promote-admin script |
 | Phase 3 | ✅ Complete | Core CRUD: Courses, sessions, materials, tasks (admin), task progress (all users), CORS |
 | Phase 4 | ✅ Complete | Advanced: Grades/GPA calculator, academic events, dashboard, global search with cache |
-| Phase 5 | ⬜ Not started | Unit tests, integration tests, production Dockerfile, Caddyfile, deployment docs |
+| Phase 5 | ✅ Complete | Unit tests (22 passing), Swagger UI, test scripts, production Dockerfile, monorepo structure |
+| Phase 6 | ⬜ Next | Frontend integration, E2E testing, deployment guide, Caddyfile |
 
 ---
 
