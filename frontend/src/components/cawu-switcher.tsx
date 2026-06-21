@@ -67,7 +67,7 @@ export function CawuSwitcher() {
       <SelectContent>
         {cawus.map((cawu) => (
           <SelectItem key={cawu.id} value={cawu.id.toString()}>
-            {cawu.name}
+            Cawu {cawu.semester}
           </SelectItem>
         ))}
       </SelectContent>

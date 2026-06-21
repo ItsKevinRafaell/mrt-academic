@@ -34,6 +34,14 @@ func (m *mockGradeRepo) CreateBulk(grades []domain.Grade) error {
 	return nil
 }
 
+func (m *mockGradeRepo) GetGradesForCourse(userID string, courseID int) ([]domain.GradeComponentWithScore, error) {
+	return nil, nil
+}
+
+func (m *mockGradeRepo) GetIPKData(userID string) ([]domain.IPKData, error) {
+	return nil, nil
+}
+
 func TestGradeUsecase_CreateGrade(t *testing.T) {
 	mock := &mockGradeRepo{}
 	uc := NewGradeUsecase(mock)

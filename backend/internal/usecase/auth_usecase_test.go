@@ -54,7 +54,7 @@ func (m *mockUserRoleRepo) Assign(userRole *domain.UserRole) error {
 func (m *mockUserRoleRepo) GetByUserID(userID string) ([]domain.UserRole, error) {
 	role, ok := m.roles[userID]
 	if !ok {
-		return []domain.UserRole{{Role: "mahasiswa"}}, nil
+		return []domain.UserRole{{Role: domain.RoleMahasiswa}}, nil
 	}
 	return []domain.UserRole{{Role: role}}, nil
 }
@@ -62,7 +62,7 @@ func (m *mockUserRoleRepo) GetByUserID(userID string) ([]domain.UserRole, error)
 func (m *mockUserRoleRepo) GetPrimaryRole(userID string) (string, error) {
 	role, ok := m.roles[userID]
 	if !ok {
-		return "mahasiswa", nil
+		return domain.RoleMahasiswa, nil
 	}
 	return role, nil
 }
@@ -256,8 +256,8 @@ func TestAuthUsecase_GetCurrentUser_Success(t *testing.T) {
 	if currentUser.Email != "john@test.com" {
 		t.Errorf("expected email john@test.com, got %s", currentUser.Email)
 	}
-	if role != "mahasiswa" {
-		t.Errorf("expected role mahasiswa, got %s", role)
+	if role != domain.RoleMahasiswa {
+		t.Errorf("expected role %s, got %s", domain.RoleMahasiswa, role)
 	}
 }
 

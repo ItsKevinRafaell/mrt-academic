@@ -12,16 +12,39 @@ import {
   BookOpen,
   CheckCircle2,
   Calendar,
+  Plus,
+  Pencil,
+  Trash2,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { LiveBoardGallery } from "@/components/LiveBoardGallery";
 import { getSession, type Session } from "@/lib/api/sessions";
-import { getMaterialsBySession, type Material } from "@/lib/api/materials";
+import { getMaterialsBySession, createMaterial, deleteMaterial, type Material } from "@/lib/api/materials";
 import { getCourse } from "@/lib/api/courses";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { canManageAcademic } from "@/lib/rbac";
+import { useConfirm, ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -32,10 +55,69 @@ export default function SessionDetailPage() {
   const courseId = parseInt(params.id as string);
   const sessionId = parseInt(params.sessionId as string);
 
+  const { role } = useAuthStore();
+  const isKurikulum = role && canManageAcademic(role);
+  const { confirm, ConfirmDialog } = useConfirm();
+
   const [session, setSession] = useState<Session | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [courseName, setCourseName] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [showAddMaterial, setShowAddMaterial] = useState(false);
+  const [newMaterial, setNewMaterial] = useState({
+    title: "",
+    description: "",
+    type: "link" as "pdf" | "image" | "link" | "video" | "ppt",
+    url: "",
+  });
+  const [file, setFile] = useState<File | null>(null);
+
+  // Refresh materials after mutations
+  const refreshMaterials = async () => {
+    const data = await getMaterialsBySession(sessionId);
+    setMaterials(data || []);
+  };
+
+  const handleAddMaterial = async () => {
+    if (!newMaterial.title || !newMaterial.url) return;
+    try {
+      await createMaterial({
+        session_id: sessionId,
+        title: newMaterial.title,
+        description: newMaterial.description,
+        type: newMaterial.type,
+        url: newMaterial.url,
+      });
+      setShowAddMaterial(false);
+      setNewMaterial({ title: "", description: "", type: "link", url: "" });
+      refreshMaterials();
+    } catch (error) {
+      console.error("Failed to add material:", error);
+      alert("Gagal menambahkan materi");
+    }
+  };
+
+  const handleDeleteMaterial = async (id: number) => {
+    await confirm({
+      title: "Hapus Materi?",
+      description: "Materi akan dihapus permanent.",
+      confirmText: "Hapus",
+      variant: "destructive",
+      onConfirm: async () => {
+        await deleteMaterial(id);
+        refreshMaterials();
+      },
+    });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setFile(f);
+    // For now, just use file name as URL placeholder
+    // In real app, you'd upload to storage
+    setNewMaterial((m) => ({ ...m, url: `file://${f.name}` }));
+  };
 
   useEffect(() => {
     loadData();
@@ -187,7 +269,84 @@ export default function SessionDetailPage() {
 
       {/* Top Section: Main Materials */}
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold">Materi Utama</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Materi Utama</h2>
+          {isKurikulum && (
+            <Dialog open={showAddMaterial} onOpenChange={setShowAddMaterial}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Tambah Materi
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Tambah Materi</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Judul</Label>
+                    <Input
+                      value={newMaterial.title}
+                      onChange={(e) => setNewMaterial((m) => ({ ...m, title: e.target.value }))}
+                      placeholder="Judul materi..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Deskripsi</Label>
+                    <Input
+                      value={newMaterial.description}
+                      onChange={(e) => setNewMaterial((m) => ({ ...m, description: e.target.value }))}
+                      placeholder="Deskripsi (opsional)..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tipe</Label>
+                    <Select value={newMaterial.type} onValueChange={(v) => setNewMaterial((m) => ({ ...m, type: v as any }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pdf">PDF</SelectItem>
+                        <SelectItem value="image">Image</SelectItem>
+                        <SelectItem value="link">Link</SelectItem>
+                        <SelectItem value="video">Video</SelectItem>
+                        <SelectItem value="ppt">PPT</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>URL / File</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newMaterial.url}
+                        onChange={(e) => setNewMaterial((m) => ({ ...m, url: e.target.value }))}
+                        placeholder="https://..."
+                        className="flex-1"
+                      />
+                      <div className="relative">
+                        <Input
+                          type="file"
+                          className="cursor-pointer"
+                          onChange={handleFileUpload}
+                          accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setShowAddMaterial(false)}>
+                      Batal
+                    </Button>
+                    <Button onClick={handleAddMaterial} disabled={!newMaterial.title || !newMaterial.url}>
+                      Simpan
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
         {materials.length > 0 ? (
           <Card>
             <div className="p-6">
@@ -201,35 +360,48 @@ export default function SessionDetailPage() {
               <Separator className="mb-4" />
               <div className="grid gap-3">
                 {materials.map((material) => (
-                  <a
+                  <div
                     key={material.id}
-                    href={material.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:shadow-md transition-all group"
                   >
-                    <div
-                      className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
-                        getMaterialColor(material.type)
-                      )}
+                    <a
+                      href={material.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 flex-1"
                     >
-                      {getMaterialIcon(material.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm group-hover:text-primary transition-colors">
-                        {material.title}
-                      </h4>
-                      {material.description && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {material.description}
-                        </p>
-                      )}
-                    </div>
+                      <div
+                        className={cn(
+                          "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
+                          getMaterialColor(material.type)
+                        )}
+                      >
+                        {getMaterialIcon(material.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">
+                          {material.title}
+                        </h4>
+                        {material.description && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {material.description}
+                          </p>
+                        )}
+                      </div>
+                    </a>
                     <Badge variant="outline" className="text-xs capitalize">
                       {material.type}
                     </Badge>
-                  </a>
+                    {isKurikulum && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteMaterial(material.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -243,6 +415,8 @@ export default function SessionDetailPage() {
           </Card>
         )}
       </section>
+
+      <ConfirmDialog />
 
       {/* Bottom Section: Live Board Gallery */}
       <section className="space-y-4">

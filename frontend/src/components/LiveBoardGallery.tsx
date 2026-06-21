@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Image as ImageIcon, X, Upload, Loader2, RefreshCw, GripVertical, ChevronLeft, ChevronRight, Maximize2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,9 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
-  getBoardGalleryBySession,
-  createBoardGalleryItem,
-  deleteBoardGalleryItem,
+  useBoardGallery,
+  useCreateBoardGalleryItem,
+  useDeleteBoardGalleryItem,
   type BoardGalleryItem,
 } from '@/lib/api/board-gallery';
 import { EnhancedDocumentScanner, type ScanResult } from './EnhancedDocumentScanner';
@@ -25,9 +25,10 @@ interface LiveBoardGalleryProps {
 }
 
 export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps) {
-  const [items, setItems] = useState<BoardGalleryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { data: items = [], isLoading: loading, refetch, isRefetching: refreshing } = useBoardGallery(sessionId);
+  const createMutation = useCreateBoardGalleryItem();
+  const deleteMutation = useDeleteBoardGalleryItem(sessionId);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<BoardGalleryItem | null>(null);
   const [uploadMode, setUploadMode] = useState<'scan' | 'form' | 'ninja'>('form');
@@ -38,34 +39,28 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [ocrText, setOcrText] = useState('');
-  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const { user, role } = useAuthStore();
 
-  const loadItems = useCallback(async () => {
-    try {
-      const data = await getBoardGalleryBySession(sessionId);
-      setItems(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Failed to load board gallery:', error);
-      setItems([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [sessionId]);
-
-  useEffect(() => {
-    loadItems();
-
-    // Poll for updates every 5 seconds (real-time simulation)
-    const interval = setInterval(loadItems, 5000);
-    return () => clearInterval(interval);
-  }, [loadItems]);
-
   const handleRefresh = () => {
-    setRefreshing(true);
-    loadItems();
+    refetch();
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setImageUrl('');
+    setOcrText('');
+    setSelectedFile(null);
+    setUploadMode('form');
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      resetForm();
+    }
   };
 
   const handleScanComplete = async (result: ScanResult) => {
@@ -85,7 +80,6 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
       ninjaUploadRef.current.value = '';
     }
 
-    setUploading(true);
     try {
       // Convert file to base64 data URL
       const reader = new FileReader();
@@ -95,7 +89,7 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
         // Auto-generate title with timestamp
         const autoTitle = `Board Photo - ${new Date().toLocaleTimeString('id-ID')}`;
 
-        await createBoardGalleryItem({
+        createMutation.mutate({
           session_id: sessionId,
           title: autoTitle,
           description: `Quick upload from ${courseId}`,
@@ -103,63 +97,53 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
           ocr_text: '',
           tags: [],
         });
-
-        setUploading(false);
-        await loadItems();
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Ninja upload failed:', error);
-      setUploading(false);
     }
   };
 
   // Check if user can upload (KURIKULUM or SUPER_ADMIN only)
   const canUpload = user && role && canManageAcademic(role);
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!title || !imageUrl) return;
 
-    setUploading(true);
-    try {
-      await createBoardGalleryItem({
+    createMutation.mutate(
+      {
         session_id: sessionId,
         title,
         description,
         image_url: imageUrl,
         ocr_text: ocrText,
         tags: [],
-      });
-
-      // Reset form
-      setTitle('');
-      setDescription('');
-      setImageUrl('');
-      setOcrText('');
-      setDialogOpen(false);
-
-      // Reload items
-      await loadItems();
-    } catch (error) {
-      console.error('Failed to upload board photo:', error);
-    } finally {
-      setUploading(false);
-    }
+      },
+      {
+        onSuccess: () => {
+          setTitle('');
+          setDescription('');
+          setImageUrl('');
+          setOcrText('');
+          setDialogOpen(false);
+        },
+      }
+    );
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = (id: number) => {
     if (!confirm('Are you sure you want to delete this photo?')) return;
 
-    try {
-      await deleteBoardGalleryItem(id);
-      await loadItems();
-      if (selectedItem?.id === id) {
-        setSelectedItem(null);
-      }
-    } catch (error) {
-      console.error('Failed to delete board photo:', error);
-    }
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        if (selectedItem?.id === id) {
+          setSelectedItem(null);
+        }
+      },
+    });
   };
+
+  const uploading = createMutation.isPending;
 
   if (loading) {
     return (
@@ -229,7 +213,7 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
           )}
 
           {canUpload && (
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
               <DialogTrigger asChild>
                 <Button size="sm">
                   <Upload className="w-4 h-4 mr-2" />
@@ -293,13 +277,26 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
                     </div>
 
                     <div>
-                      <Label htmlFor="imageUrl">Image URL *</Label>
+                      <Label htmlFor="fileUpload">Attachment *</Label>
                       <Input
-                        id="imageUrl"
-                        value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                        placeholder="https://..."
+                        id="fileUpload"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            setSelectedFile(file)
+                            const reader = new FileReader()
+                            reader.onloadend = () => setImageUrl(reader.result as string)
+                            reader.readAsDataURL(file)
+                          }
+                        }}
                       />
+                      {selectedFile && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Selected: {selectedFile.name}
+                        </p>
+                      )}
                     </div>
 
                     {ocrText && (
@@ -374,6 +371,8 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
                     <img
                       src={item.image_url}
                       alt={item.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
 
@@ -481,6 +480,8 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
                   <img
                     src={selectedItem.image_url}
                     alt={selectedItem.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-auto max-h-[60vh] object-contain"
                   />
                 </div>

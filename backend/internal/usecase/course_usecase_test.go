@@ -98,6 +98,10 @@ func (m *mockTaskRepo) GetProgressByTaskID(taskID int) ([]domain.TaskProgress, e
 func (m *mockTaskRepo) GetProgressWithUsersByTaskID(taskID int) ([]domain.TaskProgressWithUser, error) {
 	return nil, nil
 }
+func (m *mockTaskRepo) GetTotalUserCount() (int, error)                  { return 0, nil }
+func (m *mockTaskRepo) GetTaskDetail(taskID int) (*domain.TaskDetailResponse, error) {
+	return nil, nil
+}
 
 func TestCourseUsecase_Create_Success(t *testing.T) {
 	mockRepo := &mockCourseRepo{courses: make(map[int]*domain.Course)}

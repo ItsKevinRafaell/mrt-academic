@@ -1,6 +1,8 @@
 import { api, unwrapData } from "./client";
 import type { Task, TaskInput, TaskProgress, TaskWithProgress } from "@/types";
 
+export type { TaskWithProgress } from "@/types";
+
 export async function getTasks(courseId: number): Promise<Task[]> {
   const res = await api.get(`/courses/${courseId}/tasks`);
   return unwrapData<Task[]>(res);

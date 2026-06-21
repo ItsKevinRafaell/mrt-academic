@@ -12,7 +12,8 @@ export async function getExamArchives(courseId?: number): Promise<ExamArchive[]>
     ? `/bank-soal/archives?course_id=${courseId}`
     : '/bank-soal/archives';
   const response = await api.get(url);
-  return response?.data?.data;
+  // API returns array directly, not wrapped in data object
+  return Array.isArray(response?.data) ? response.data : [];
 }
 
 export async function getExamArchive(id: number): Promise<ExamArchive> {
@@ -39,7 +40,8 @@ export async function getSimulations(courseId?: number): Promise<Simulation[]> {
     ? `/bank-soal/simulations?course_id=${courseId}`
     : '/bank-soal/simulations';
   const response = await api.get(url);
-  return response?.data?.data;
+  // API returns array directly, not wrapped in data object
+  return Array.isArray(response?.data) ? response.data : [];
 }
 
 export async function getSimulation(id: number): Promise<Simulation> {
@@ -63,5 +65,6 @@ export async function deleteSimulation(id: number): Promise<void> {
 
 export async function getSimulationQuestions(simulationId: number): Promise<SimulationQuestion[]> {
   const response = await api.get(`/bank-soal/simulations/${simulationId}/questions`);
-  return response?.data?.data;
+  // API returns array directly, not wrapped in data object
+  return Array.isArray(response?.data) ? response.data : [];
 }

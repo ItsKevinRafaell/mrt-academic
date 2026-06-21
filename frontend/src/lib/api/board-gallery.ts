@@ -1,4 +1,5 @@
 import { api } from './client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface BoardGalleryItem {
   id: number;
@@ -36,7 +37,6 @@ export interface ReorderBoardGalleryRequest {
   order_number: number;
 }
 
-// Create a new board gallery item
 export async function createBoardGalleryItem(
   data: CreateBoardGalleryRequest
 ): Promise<BoardGalleryItem> {
@@ -44,21 +44,18 @@ export async function createBoardGalleryItem(
   return response.data;
 }
 
-// Get all board gallery items for a session
 export async function getBoardGalleryBySession(
   sessionId: number
 ): Promise<BoardGalleryItem[]> {
   const response = await api.get(`/board-gallery/session/${sessionId}`);
-  return response.data;
+  return response.data.data ?? [];
 }
 
-// Get a single board gallery item by ID
 export async function getBoardGalleryItem(id: number): Promise<BoardGalleryItem> {
   const response = await api.get(`/board-gallery/${id}`);
   return response.data;
 }
 
-// Update a board gallery item
 export async function updateBoardGalleryItem(
   id: number,
   data: UpdateBoardGalleryRequest
@@ -67,15 +64,51 @@ export async function updateBoardGalleryItem(
   return response.data;
 }
 
-// Delete a board gallery item (soft delete)
 export async function deleteBoardGalleryItem(id: number): Promise<void> {
   await api.delete(`/board-gallery/${id}`);
 }
 
-// Reorder a board gallery item
 export async function reorderBoardGalleryItem(
   id: number,
   orderNumber: number
 ): Promise<void> {
   await api.patch(`/board-gallery/${id}/reorder`, { order_number: orderNumber });
+}
+
+export const boardGalleryKeys = {
+  bySession: (sessionId: number) => ['board-gallery', 'session', sessionId] as const,
+};
+
+export function useBoardGallery(sessionId: number) {
+  return useQuery({
+    queryKey: boardGalleryKeys.bySession(sessionId),
+    queryFn: () => getBoardGalleryBySession(sessionId),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: false,
+  });
+}
+
+export function useCreateBoardGalleryItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateBoardGalleryRequest) => createBoardGalleryItem(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: boardGalleryKeys.bySession(variables.session_id),
+      });
+    },
+  });
+}
+
+export function useDeleteBoardGalleryItem(sessionId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteBoardGalleryItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: boardGalleryKeys.bySession(sessionId),
+      });
+    },
+  });
 }

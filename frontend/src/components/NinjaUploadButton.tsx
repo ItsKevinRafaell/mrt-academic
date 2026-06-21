@@ -150,31 +150,38 @@ export function NinjaUploadButton({ courseId, topicId, onUploadSuccess }: NinjaU
                     <Button
                       variant="outline"
                       onClick={() => {
-                        const input = document.createElement("input")
-                        input.type = "file"
-                        input.accept = "image/*"
-                        input.onchange = (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0]
-                          if (file) {
-                            const reader = new FileReader()
-                            reader.onloadend = () => {
-                              setScanResult({
-                                imageData: reader.result as string,
-                                processedImageData: reader.result as string,
-                                ocrText: "",
-                                confidence: 0,
-                              })
-                            }
-                            reader.readAsDataURL(file)
-                          }
-                        }
-                        input.click()
+                        fileInputRef.current?.click()
                       }}
                       className="h-32 flex-col gap-2"
                     >
                       <Upload className="w-8 h-8" />
                       <span>Upload Image</span>
                     </Button>
+
+                    {/* Hidden file input for upload */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx,.ppt,.pptx"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          const reader = new FileReader()
+                          reader.onloadend = () => {
+                            setScanResult({
+                              imageData: reader.result as string,
+                              processedImageData: reader.result as string,
+                              ocrText: "",
+                              confidence: 0,
+                            })
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                        // Reset input
+                        if (fileInputRef.current) fileInputRef.current.value = ''
+                      }}
+                    />
                   </div>
 
                   <div className="mt-6">

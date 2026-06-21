@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { CommandBar } from "@/components/command-bar";
 import { CawuSwitcher } from "@/components/cawu-switcher";
 import { Search } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { Loader2 } from "lucide-react";
 
 export default function MainLayout({
   children,
@@ -13,9 +14,28 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useAuthStore();
+  const { user, isLoading } = useAuthStore();
 
-  if (!user) return null;
+  // Show loading while auth hydrates from localStorage
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

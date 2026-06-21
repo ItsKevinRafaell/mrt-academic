@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { RouteGuard } from "@/components/RouteGuard";
-import { BookOpen, Calendar, FileText, Tags, Upload, Download, ChevronRight, Pencil, ArrowLeft } from "lucide-react";
+import { BookOpen, Calendar, FileText, Tags, Upload, Download, ChevronRight, Pencil, ArrowLeft, Database, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCourses } from "@/lib/api/courses";
 import { getSessions } from "@/lib/api/sessions";
 import { getMaterialsByCourse } from "@/lib/api/materials";
+import { getExamArchives, getSimulations } from "@/lib/api/bank-soal";
 import { exportCourses, exportTemplate } from "@/lib/api/excel";
 import type { Course, Session, Material } from "@/types";
+import type { ExamArchive, Simulation } from "@/types/bank-soal";
 import { CourseDialog } from "./components/CourseDialog";
 import { SessionDialog } from "./components/SessionDialog";
 import { MaterialDialog } from "./components/MaterialDialog";
@@ -26,7 +29,10 @@ export default function CurriculumPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [examArchives, setExamArchives] = useState<ExamArchive[]>([]);
+  const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingBankSoal, setLoadingBankSoal] = useState(false);
 
   // Navigation state
   const [viewMode, setViewMode] = useState<ViewMode>("courses");
@@ -70,6 +76,7 @@ export default function CurriculumPage() {
   const handleCourseSelect = (course: Course) => {
     setSelectedCourse(course);
     setViewMode("course-detail");
+    loadBankSoalData(course.id);
   };
 
   const handleSessionSelect = (session: Session) => {
@@ -87,6 +94,22 @@ export default function CurriculumPage() {
     setViewMode("course-detail");
     setSelectedSession(null);
   };
+
+  async function loadBankSoalData(courseId: number) {
+    setLoadingBankSoal(true);
+    try {
+      const [archivesData, simulationsData] = await Promise.all([
+        getExamArchives(courseId),
+        getSimulations(courseId),
+      ]);
+      setExamArchives(archivesData || []);
+      setSimulations(simulationsData || []);
+    } catch (error) {
+      console.error("Failed to load Bank Soal data:", error);
+    } finally {
+      setLoadingBankSoal(false);
+    }
+  }
 
   async function handleExport() {
     setExporting(true);
@@ -305,46 +328,176 @@ export default function CurriculumPage() {
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Daftar Sesi ({courseSessions.length})</h3>
-                <div className="space-y-3">
-                  {courseSessions.length === 0 ? (
-                    <Card>
-                      <CardContent className="py-8 text-center text-muted-foreground">
-                        Belum ada sesi untuk mata kuliah ini
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    courseSessions.map((session) => {
-                      const sessionMats = materials.filter(m => m.session_id === session.id);
-                      return (
-                        <Card
-                          key={session.id}
-                          className="cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => handleSessionSelect(session)}
-                        >
-                          <CardContent className="pt-6">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <h4 className="font-semibold">{session.title}</h4>
-                                {session.description && (
-                                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                    {session.description}
-                                  </p>
-                                )}
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  {sessionMats.length} materi
-                                </p>
-                              </div>
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            </div>
+              {/* Tabs */}
+              <Tabs defaultValue="materi" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="materi" className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Sesi & Materi
+                  </TabsTrigger>
+                  <TabsTrigger value="bank-soal" className="flex items-center gap-2">
+                    <Database className="h-4 w-4" />
+                    Bank Soal
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="materi" className="space-y-6 mt-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Daftar Sesi ({courseSessions.length})</h3>
+                    <div className="space-y-3">
+                      {courseSessions.length === 0 ? (
+                        <Card>
+                          <CardContent className="py-8 text-center text-muted-foreground">
+                            Belum ada sesi untuk mata kuliah ini
                           </CardContent>
                         </Card>
-                      );
-                    })
+                      ) : (
+                        courseSessions.map((session) => {
+                          const sessionMats = materials.filter(m => m.session_id === session.id);
+                          return (
+                            <Card
+                              key={session.id}
+                              className="cursor-pointer hover:shadow-md transition-shadow"
+                              onClick={() => handleSessionSelect(session)}
+                            >
+                              <CardContent className="pt-6">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold">{session.title}</h4>
+                                    {session.description && (
+                                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                        {session.description}
+                                      </p>
+                                    )}
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                      {sessionMats.length} materi
+                                    </p>
+                                  </div>
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="bank-soal" className="space-y-6 mt-6">
+                  {loadingBankSoal ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-8 w-48" />
+                      <div className="space-y-3">
+                        {[1, 2, 3].map((i) => (
+                          <Skeleton key={i} className="h-32" />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Exam Archives Section */}
+                      <div>
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-semibold flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Arsip Ujian
+                          </h3>
+                          <Button size="sm">
+                            <Upload className="h-4 w-4 mr-2" />
+                            Tambah Arsip
+                          </Button>
+                        </div>
+                        {examArchives.length === 0 ? (
+                          <Card>
+                            <CardContent className="py-8 text-center text-muted-foreground">
+                              Belum ada arsip ujian untuk mata kuliah ini
+                            </CardContent>
+                          </Card>
+                        ) : (
+                          <div className="grid gap-4">
+                            {examArchives.map((archive) => (
+                              <Card key={archive.id} className="hover:shadow-md transition-shadow">
+                                <CardContent className="pt-6">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <h4 className="font-semibold">{archive.title}</h4>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {archive.exam_type.toUpperCase()} - {archive.year}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mt-2">
+                                        {archive.file_type.toUpperCase()}
+                                      </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(archive.file_url, "_blank")}
+                                      >
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Download
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Simulations Section */}
+                      <div>
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-semibold flex items-center gap-2">
+                            <Database className="h-5 w-5" />
+                            Simulasi CBT
+                          </h3>
+                          <Button size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Tambah Simulasi
+                          </Button>
+                        </div>
+                        {simulations.length === 0 ? (
+                          <Card>
+                            <CardContent className="py-8 text-center text-muted-foreground">
+                              Belum ada simulasi untuk mata kuliah ini
+                            </CardContent>
+                          </Card>
+                        ) : (
+                          <div className="grid gap-4">
+                            {simulations.map((sim) => (
+                              <Card key={sim.id} className="hover:shadow-md transition-shadow">
+                                <CardContent className="pt-6">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <h4 className="font-semibold">{sim.title}</h4>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        Durasi: {sim.duration_minutes} menit
+                                      </p>
+                                      {sim.description && (
+                                        <p className="text-xs text-muted-foreground mt-2">
+                                          {sim.description}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button variant="outline" size="sm">
+                                        Mulai
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
-                </div>
-              </div>
+                </TabsContent>
+              </Tabs>
             </div>
           )}
 

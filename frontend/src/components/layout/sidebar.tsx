@@ -67,6 +67,11 @@ export function Sidebar() {
       href: ROUTES.AKADEMIK,
     },
     {
+      icon: ClipboardList,
+      label: "Tugas",
+      href: "/tugas",
+    },
+    {
       icon: Calendar,
       label: "Kalender",
       href: "/calendar",
@@ -81,16 +86,9 @@ export function Sidebar() {
   // Bank Soal is NOT in sidebar - it should be accessed from within course detail page
 
   // Admin navigation items (conditional based on role)
+  // NOTE: Manajemen Akademik is now integrated into /akademik for KURIKULUM
+  // Monitoring is now inline in task cards (no separate page)
   const adminNav: NavItem[] = [];
-
-  // KURIKULUM and SUPER_ADMIN can manage akademik
-  if (role === "KURIKULUM" || role === "SUPER_ADMIN") {
-    adminNav.push({
-      icon: BookOpen,
-      label: "Manajemen Akademik",
-      href: ROUTES.ADMIN_CURRICULUM,
-    });
-  }
 
   // SEKRETARIS and SUPER_ADMIN can manage calendar/schedule
   if (role === "SEKRETARIS" || role === "SUPER_ADMIN") {
@@ -98,15 +96,6 @@ export function Sidebar() {
       icon: Calendar,
       label: "Manajemen Kalender",
       href: "/admin/calendar",
-    });
-  }
-
-  // Admin roles can view monitoring
-  if (["SEKRETARIS", "KURIKULUM", "KOMTI", "WAKOMTI", "SUPER_ADMIN"].includes(role || "")) {
-    adminNav.push({
-      icon: ClipboardList,
-      label: "Monitoring",
-      href: ROUTES.ADMIN_MONITORING,
     });
   }
 

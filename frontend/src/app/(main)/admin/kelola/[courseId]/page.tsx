@@ -350,7 +350,7 @@ export default function KelolaCoursePage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => router.push(`/topik/${topic.id}`)}
+                          onClick={() => router.push(`/akademik/${courseId}/topik/${topic.id}`)}
                         >
                           <Camera className="h-4 w-4" />
                         </Button>

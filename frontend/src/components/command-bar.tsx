@@ -1,146 +1,120 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, BookOpen, Calendar, Calculator, FileText } from "lucide-react";
+import { Search, BookOpen, Calendar, Calculator, FileText, ClipboardList, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface CommandItem {
+interface SearchItem {
   id: string;
   label: string;
+  sublabel?: string;
   icon: any;
   href: string;
-  category: "subject" | "page" | "session";
+  category: "page" | "course" | "session" | "task" | "material";
 }
-
-// Dummy data - will be replaced with API calls later
-const COMMAND_ITEMS: CommandItem[] = [
-  // Pages
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: Calculator,
-    href: "/dashboard",
-    category: "page",
-  },
-  {
-    id: "akademik",
-    label: "Akademik",
-    icon: BookOpen,
-    href: "/akademik",
-    category: "page",
-  },
-  {
-    id: "ipk",
-    label: "Kalkulator IPK",
-    icon: Calculator,
-    href: "/ipk",
-    category: "page",
-  },
-  {
-    id: "kalender",
-    label: "Kalender Akademik",
-    icon: Calendar,
-    href: "/kalender",
-    category: "page",
-  },
-  // Dummy subjects
-  {
-    id: "progweb",
-    label: "Pemrograman Web",
-    icon: BookOpen,
-    href: "/akademik/1",
-    category: "subject",
-  },
-  {
-    id: "basisdata",
-    label: "Basis Data",
-    icon: BookOpen,
-    href: "/akademik/2",
-    category: "subject",
-  },
-  {
-    id: "jarkom",
-    label: "Jaringan Komputer",
-    icon: BookOpen,
-    href: "/akademik/3",
-    category: "subject",
-  },
-  {
-    id: "sistop",
-    label: "Sistem Operasi",
-    icon: BookOpen,
-    href: "/akademik/4",
-    category: "subject",
-  },
-  {
-    id: "ai",
-    label: "Kecerdasan Buatan",
-    icon: BookOpen,
-    href: "/akademik/5",
-    category: "subject",
-  },
-  // Dummy sessions
-  {
-    id: "session1",
-    label: "HTML & CSS Fundamentals",
-    icon: FileText,
-    href: "/akademik/1/sesi/1",
-    category: "session",
-  },
-  {
-    id: "session2",
-    label: "JavaScript Basics",
-    icon: FileText,
-    href: "/akademik/1/sesi/2",
-    category: "session",
-  },
-  {
-    id: "session3",
-    label: "React Components",
-    icon: FileText,
-    href: "/akademik/1/sesi/3",
-    category: "session",
-  },
-];
 
 export function CommandBar() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [items, setItems] = useState<SearchItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Filter items based on search
-  const filteredItems = COMMAND_ITEMS.filter((item) =>
-    item.label.toLowerCase().includes(search.toLowerCase())
-  );
+  // Fetch search results from API
+  const fetchSearchResults = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setItems([]);
+      return;
+    }
 
-  // Reset selected index when search changes
+    setLoading(true);
+    try {
+      const { getCourses } = await import("@/lib/api/courses");
+      const { getTasks } = await import("@/lib/api/tasks");
+
+      const courses = await getCourses();
+      const tasksResults = await Promise.all(
+        courses.slice(0, 5).map((c: any) => getTasks(c.id).catch(() => []))
+      );
+      const allTasks = tasksResults.flat();
+
+      const results: SearchItem[] = [];
+      const q = query.toLowerCase();
+
+      // Search courses
+      courses.forEach((course: any) => {
+        if (
+          course.name.toLowerCase().includes(q) ||
+          course.code.toLowerCase().includes(q)
+        ) {
+          results.push({
+            id: `course-${course.id}`,
+            label: course.name,
+            sublabel: `${course.code} • ${course.sks} SKS`,
+            icon: BookOpen,
+            href: `/akademik/${course.id}`,
+            category: "course",
+          });
+        }
+      });
+
+      // Search tasks
+      allTasks.forEach((task: any) => {
+        if (task.title?.toLowerCase().includes(q)) {
+          results.push({
+            id: `task-${task.id}`,
+            label: task.title,
+            sublabel: `Deadline: ${new Date(task.deadline).toLocaleDateString("id-ID")}`,
+            icon: ClipboardList,
+            href: `/akademik/${task.course_id}?tab=tugas`,
+            category: "task",
+          });
+        }
+      });
+
+      setItems(results.slice(0, 10));
+    } catch (error) {
+      console.error("Search failed:", error);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchSearchResults(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, fetchSearchResults]);
+
+  // Reset selected index when results change
   useEffect(() => {
     setSelectedIndex(0);
-  }, [search]);
+  }, [items]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      // Open with Ctrl+K or Cmd+K
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((open) => !open);
       }
 
-      // Close with Escape
       if (e.key === "Escape" && open) {
         e.preventDefault();
         setOpen(false);
+        setSearch("");
       }
 
-      // Navigate with arrow keys
       if (open) {
         if (e.key === "ArrowDown") {
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev < filteredItems.length - 1 ? prev + 1 : prev
+            prev < items.length - 1 ? prev + 1 : prev
           );
         }
 
@@ -149,19 +123,18 @@ export function CommandBar() {
           setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
         }
 
-        // Select with Enter
-        if (e.key === "Enter" && filteredItems[selectedIndex]) {
+        if (e.key === "Enter" && items[selectedIndex]) {
           e.preventDefault();
-          handleSelect(filteredItems[selectedIndex]);
+          handleSelect(items[selectedIndex]);
         }
       }
     };
 
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, [open, filteredItems, selectedIndex]);
+  }, [open, items, selectedIndex]);
 
-  const handleSelect = (item: CommandItem) => {
+  const handleSelect = (item: SearchItem) => {
     router.push(item.href);
     setOpen(false);
     setSearch("");
@@ -169,9 +142,16 @@ export function CommandBar() {
 
   if (!open) return null;
 
+  const categoryLabels: Record<string, string> = {
+    page: "Halaman",
+    course: "Mata Kuliah",
+    session: "Sesi",
+    task: "Tugas",
+    material: "Materi",
+  };
+
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
         onClick={() => {
@@ -180,37 +160,40 @@ export function CommandBar() {
         }}
       />
 
-      {/* Command Bar */}
       <div className="fixed left-1/2 top-[20%] z-50 w-full max-w-2xl -translate-x-1/2 animate-scale-in">
         <div className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
-          {/* Search Input */}
           <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
             <Search className="h-5 w-5 text-muted-foreground flex-shrink-0" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari mata kuliah, sesi, atau halaman..."
+              placeholder="Cari mata kuliah, tugas, sesi..."
               className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
               autoFocus
             />
-            <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-              <span className="text-xs">⌘</span>K
-            </kbd>
+            {loading && (
+              <span className="text-xs text-muted-foreground animate-pulse">
+                Searching...
+              </span>
+            )}
           </div>
 
-          {/* Results */}
           <div className="max-h-96 overflow-y-auto p-2">
-            {filteredItems.length === 0 ? (
+            {items.length === 0 && search.trim() ? (
               <div className="py-12 text-center">
                 <Search className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
                   Tidak ada hasil ditemukan
                 </p>
               </div>
+            ) : items.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground text-sm">
+                Ketik untuk mencari...
+              </div>
             ) : (
               <div className="space-y-1">
-                {filteredItems.map((item, index) => (
+                {items.map((item, index) => (
                   <button
                     key={item.id}
                     onClick={() => handleSelect(item)}
@@ -224,10 +207,15 @@ export function CommandBar() {
                     <item.icon className="h-5 w-5 flex-shrink-0" />
                     <div className="flex-1 text-left">
                       <p className="font-medium">{item.label}</p>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {item.category}
-                      </p>
+                      {item.sublabel && (
+                        <p className="text-xs text-muted-foreground">
+                          {item.sublabel}
+                        </p>
+                      )}
                     </div>
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {categoryLabels[item.category] || item.category}
+                    </span>
                     {index === selectedIndex && (
                       <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                         Enter
@@ -239,30 +227,29 @@ export function CommandBar() {
             )}
           </div>
 
-          {/* Footer */}
           <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-muted/30">
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <kbd className="h-5 px-1.5 rounded border border-border bg-muted font-mono text-[10px]">
                   ↑↓
                 </kbd>
-                <span>Navigate</span>
+                Navigate
               </span>
               <span className="flex items-center gap-1">
                 <kbd className="h-5 px-1.5 rounded border border-border bg-muted font-mono text-[10px]">
                   Enter
                 </kbd>
-                <span>Select</span>
+                Select
               </span>
               <span className="flex items-center gap-1">
                 <kbd className="h-5 px-1.5 rounded border border-border bg-muted font-mono text-[10px]">
                   Esc
                 </kbd>
-                <span>Close</span>
+                Close
               </span>
             </div>
             <span className="text-xs text-muted-foreground">
-              {filteredItems.length} results
+              {items.length} results
             </span>
           </div>
         </div>

@@ -7,6 +7,7 @@ export interface Course {
   instructors?: string[];
   cawu_id?: number;
   course_type?: "lecturer" | "lab";
+  slug: string;
   created_at: string;
   updated_at: string;
 }
@@ -18,4 +19,5 @@ export interface CourseInput {
   description?: string;
   instructors?: string[];
   cawu_id?: number;
+  course_type?: "lecturer" | "lab";
 }

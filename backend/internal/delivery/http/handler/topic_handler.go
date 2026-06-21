@@ -71,7 +71,7 @@ func (h *TopicHandler) GetTopicByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topic, err := h.topicUsecase.GetTopicByID(r.Context(), id)
+	topic, err := h.topicUsecase.GetTopicWithDetails(r.Context(), id)
 	if err != nil {
 		handleError(w, err)
 		return

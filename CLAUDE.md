@@ -2,7 +2,7 @@
 
 All-in-one class management platform for MRT ecosystem. This document is the single source of truth for backend development. Every architectural decision, convention, and constraint is recorded here.
 
-**Last updated:** 2026-06-14
+**Last updated:** 2026-06-21
 
 ---
 
@@ -55,9 +55,11 @@ docker compose up -d
 | Phase 1 | ✅ Complete | Infrastructure: Docker, DB schema, health check, OpenAPI docs, config loader, DB pool |
 | Phase 2 | ✅ Complete | Auth: Register, login, JWT (24h), auth middleware, RBAC, promote-admin script |
 | Phase 3 | ✅ Complete | Core CRUD: Courses, sessions, materials, tasks (admin), task progress (all users), CORS |
-| Phase 4 | ✅ Complete | Advanced: Grades/GPA calculator, academic events, dashboard, global search with cache |
-| Phase 5 | ✅ Complete | Unit tests (22 passing), Swagger UI, test scripts, production Dockerfile, monorepo structure |
-| Phase 6 | ⬜ Next | Frontend integration, E2E testing, deployment guide, Caddyfile |
+| Phase 4 | ✅ Complete | Advanced: Grades/GPA, grade components, academic events, dashboard, global search with cache |
+| Phase 5 | ✅ Complete | Extended: Topics, schedules, board gallery, bank soal (arsip+CBT sim), calendar events, Excel import/export, user management |
+| Phase 6 | ✅ Complete | Frontend: Next.js 14 App Router, 23 pages, 150+ components, Zustand stores, shadcn/ui |
+| Phase 7 | ✅ Complete | Unit tests (29 passing), Swagger UI, middleware tests, test scripts, monorepo structure |
+| Phase 8 | ⬜ Next | CI/CD pipeline, E2E testing, production deployment, Caddyfile |
 
 ---
 
@@ -128,66 +130,106 @@ Handler     → maps domain error → HTTP status + error_code JSON
 ```
 backend/
 ├── cmd/api/main.go                  # Entrypoint, dependency wiring only
+├── cmd/promote-admin/main.go        # Promote user to super_admin
+├── cmd/seed/main.go                 # Seed test data
 ├── internal/
+│   ├── config/
+│   │   └── config.go                # Environment configuration
 │   ├── domain/                      # Structs + interfaces (zero imports)
+│   │   ├── board_gallery.go
+│   │   ├── calendar_event.go
+│   │   ├── calendar_repository.go
 │   │   ├── cawu.go
 │   │   ├── course.go
-│   │   ├── user.go
-│   │   ├── session.go
-│   │   ├── material.go
-│   │   ├── task.go
-│   │   ├── grade.go
+│   │   ├── dashboard_repository.go
+│   │   ├── errors.go
 │   │   ├── event.go
+│   │   ├── event_repository.go
+│   │   ├── exam_archive.go
+│   │   ├── grade.go
+│   │   ├── grade_component.go
+│   │   ├── material.go
 │   │   ├── question.go
-│   │   └── errors.go
+│   │   ├── schedule.go
+│   │   ├── session.go
+│   │   ├── task.go
+│   │   ├── topic.go
+│   │   ├── user.go
+│   │   └── user_role.go
 │   ├── usecase/                     # Business logic
 │   │   ├── auth_usecase.go
+│   │   ├── bank_soal_usecase.go
+│   │   ├── board_gallery_usecase.go
+│   │   ├── calendar_usecase.go
+│   │   ├── cawu_usecase.go
 │   │   ├── course_usecase.go
-│   │   ├── task_usecase.go
-│   │   ├── grade_usecase.go
+│   │   ├── dashboard_usecase.go
 │   │   ├── event_usecase.go
+│   │   ├── excel_usecase.go
+│   │   ├── grade_component_usecase.go
+│   │   ├── grade_usecase.go
+│   │   ├── question_usecase.go
+│   │   ├── schedule_usecase.go
 │   │   ├── search_usecase.go
-│   │   └── dashboard_usecase.go
+│   │   ├── task_usecase.go
+│   │   ├── topic_usecase.go
+│   │   └── user_usecase.go
 │   ├── delivery/http/               # HTTP layer
 │   │   ├── handler/
 │   │   │   ├── auth_handler.go
+│   │   │   ├── bank_soal_handler.go
+│   │   │   ├── board_gallery_handler.go
+│   │   │   ├── calendar_handler.go
+│   │   │   ├── cawu_handler.go
 │   │   │   ├── course_handler.go
-│   │   │   ├── task_handler.go
-│   │   │   ├── grade_handler.go
+│   │   │   ├── dashboard_handler.go
+│   │   │   ├── docs.go
+│   │   │   ├── error_helper.go
 │   │   │   ├── event_handler.go
+│   │   │   ├── excel_handler.go
+│   │   │   ├── grade_component_handler.go
+│   │   │   ├── grade_handler.go
+│   │   │   ├── question_handler.go
+│   │   │   ├── schedule_handler.go
 │   │   │   ├── search_handler.go
-│   │   │   └── dashboard_handler.go
+│   │   │   ├── swagger_handler.go
+│   │   │   ├── task_handler.go
+│   │   │   ├── topic_handler.go
+│   │   │   ├── user_handler.go
+│   │   │   └── health_handler.go
 │   │   ├── middleware/
 │   │   │   ├── auth.go
-│   │   │   ├── cors.go
-│   │   │   ├── ratelimit.go
-│   │   │   └── rbac.go
+│   │   │   └── cors.go
 │   │   ├── router.go
 │   │   └── response.go
 │   ├── repository/postgres/         # Raw SQL implementations
+│   │   ├── board_gallery_repository.go
+│   │   ├── calendar_repo.go
 │   │   ├── cawu_repo.go
-│   │   ├── user_repo.go
 │   │   ├── course_repo.go
-│   │   ├── session_repo.go
-│   │   ├── material_repo.go
-│   │   ├── task_repo.go
-│   │   ├── grade_repo.go
+│   │   ├── dashboard_repo.go
+│   │   ├── db.go
 │   │   ├── event_repo.go
-│   │   └── question_repo.go
-│   └── cache/                       # In-memory cache
-│       └── search_index.go
-├── migrations/                      # Numbered raw SQL files
-│   ├── 001_create_cawu.sql
-│   ├── 002_create_users.sql
-│   ├── 003_create_user_roles.sql
-│   ├── 004_create_courses.sql
-│   ├── 005_create_sessions.sql
-│   ├── 006_create_materials.sql
-│   ├── 007_create_tasks.sql
-│   ├── 008_create_task_progress.sql
-│   ├── 009_create_user_grades.sql
-│   ├── 010_create_academic_events.sql
-│   └── 011_create_questions.sql
+│   │   ├── exam_archive_repository.go
+│   │   ├── exam_submission_repository.go
+│   │   ├── grade_component_repo.go
+│   │   ├── grade_repo.go
+│   │   ├── material_repo.go
+│   │   ├── question_repo.go
+│   │   ├── schedule_repo.go
+│   │   ├── search_repo.go
+│   │   ├── session_repo.go
+│   │   ├── system_settings_repo.go
+│   │   ├── task_repo.go
+│   │   ├── topic_repository.go
+│   │   └── user_repo.go
+├── migrations/                      # Numbered raw SQL files (001–026)
+│   ├── 001_initial_schema.sql
+│   ├── 002_add_grade_fields_and_cawu.sql
+│   ├── ...
+│   ├── 024_create_board_gallery.sql
+│   ├── 025_create_bank_soal.sql
+│   └── 026_seed_bank_soal.sql
 ├── go.mod
 ├── .env.example
 └── .gitignore
@@ -507,97 +549,224 @@ perf(cache): optimize search index build query
 
 ---
 
-## API Endpoints
+## API Endpoints (60+ routes)
+
+### Health
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/health | No | Health check (for Docker) |
+
+### Docs
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/v1/docs | No | OpenAPI YAML spec |
+| GET | /api/v1/swagger | No | Swagger UI |
 
 ### Auth
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
+| POST | /api/v1/auth/register | No | Register new user |
 | POST | /api/v1/auth/login | No | Login, returns JWT |
-| GET | /api/v1/auth/me | Yes | Current user info |
+| GET | /api/v1/users/me | Yes | Current user info |
 
-### Cawu
+### Cawu (Periode Akademik)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/cawu/active | Yes | Get active cawu |
-| PUT | /api/v1/cawu/{id}/activate | SUPER_ADMIN | Set active cawu |
+| POST | /api/v1/cawu | KURIKULUM+ | Create cawu |
+| GET | /api/v1/cawu | Yes | List all cawus |
+| GET | /api/v1/cawu/{id} | Yes | Get cawu by ID |
+| PUT | /api/v1/cawu/{id} | KURIKULUM+ | Update cawu |
+| DELETE | /api/v1/cawu/{id} | KURIKULUM+ | Delete cawu |
+| PUT | /api/v1/cawu/{id}/active | KURIKULUM+ | Set active cawu |
+| GET | /api/v1/cawu/active/current | Yes | Get currently active cawu |
+| GET | /api/v1/cawu/{cawuID}/courses | Yes | Filter courses by cawu |
 
 ### Courses (Akademik)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/courses?cawu_id=1 | Yes | List courses by cawu |
-| GET | /api/v1/courses/{id} | Yes | Course detail + overview |
+| GET | /api/v1/courses?cawu_id=1 | Yes | List courses (filterable by cawu) |
 | POST | /api/v1/courses | KURIKULUM+ | Create course |
+| GET | /api/v1/courses/{id} | Yes | Course detail |
 | PUT | /api/v1/courses/{id} | KURIKULUM+ | Update course |
-| DELETE | /api/v1/courses/{id} | SUPER_ADMIN | Delete course |
+| DELETE | /api/v1/courses/{id} | KURIKULUM+ | Delete course |
 
 ### Sessions
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/courses/{id}/sessions | Yes | List sessions for a course |
-| POST | /api/v1/courses/{id}/sessions | KURIKULUM+ | Create session |
-| PUT | /api/v1/sessions/{id} | KURIKULUM+ | Update session |
-| DELETE | /api/v1/sessions/{id} | KURIKULUM+ | Delete session |
+| GET | /api/v1/courses/{course_id}/sessions | Yes | List sessions for a course |
+| GET | /api/v1/sessions/{session_id} | Yes | Get session by ID |
+| GET | /api/v1/sessions/{session_id}/materials | Yes | Get materials for a session |
+| POST | /api/v1/courses/{course_id}/sessions | KURIKULUM+ | Create session |
+| PUT | /api/v1/sessions/{session_id} | KURIKULUM+ | Update session |
+| DELETE | /api/v1/sessions/{session_id} | KURIKULUM+ | Delete session |
 
 ### Materials
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/courses/{id}/materials | Yes | Materials grouped by session |
-| POST | /api/v1/sessions/{id}/materials | KURIKULUM+ | Add material |
-| PUT | /api/v1/materials/{id} | KURIKULUM+ | Update material |
-| DELETE | /api/v1/materials/{id} | KURIKULUM+ | Delete material |
+| GET | /api/v1/courses/{course_id}/materials | Yes | Materials by course |
+| POST | /api/v1/materials | KURIKULUM+ | Add material |
+| PUT | /api/v1/materials/{material_id} | KURIKULUM+ | Update material |
+| DELETE | /api/v1/materials/{material_id} | KURIKULUM+ | Delete material |
 
 ### Tasks
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/courses/{id}/tasks | Yes | List tasks for a course |
-| POST | /api/v1/courses/{id}/tasks | KURIKULUM+ | Create task |
+| GET | /api/v1/courses/{course_id}/tasks | Yes | List tasks for a course |
+| POST | /api/v1/courses/{course_id}/tasks | KURIKULUM+ | Create task |
+| GET | /api/v1/tasks/{id} | Yes | Get task by ID |
 | PUT | /api/v1/tasks/{id} | KURIKULUM+ | Update task |
 | DELETE | /api/v1/tasks/{id} | KURIKULUM+ | Delete task |
-| PATCH | /api/v1/tasks/{id}/submit | MAHASISWA+ | Toggle task completion |
+| PATCH | /api/v1/tasks/{id}/progress | Yes | Toggle task completion |
+| GET | /api/v1/tasks/progress | Yes | Get progress by current user |
+| GET | /api/v1/tasks/{id}/progress | Yes | Get progress by task |
+| GET | /api/v1/tasks/{id}/detail | KURIKULUM+ | Get task detail (admin) |
 
 ### Task Monitoring (Admin)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/tasks/{id}/progress | KURIKULUM, KOMTI, WAKOMTI, SEKRETARIS | Progress bar + split table |
+| GET | /api/v1/tasks/{id}/monitoring | KURIKULUM+ | Progress summary per task |
+| GET | /api/v1/courses/{course_id}/tasks/monitoring | KURIKULUM+ | Progress summary per course |
 
 ### Grades (Kalkulator IPK)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/grades?cawu_id=1 | MAHASISWA+ | User grades by cawu |
-| PUT | /api/v1/grades | MAHASISWA+ | Set/update grade for a course |
-| GET | /api/v1/grades/summary | MAHASISWA+ | IPK cumulative + per-cawu breakdown |
+| POST | /api/v1/grades | Yes | Create grade |
+| POST | /api/v1/courses/{course_id}/grades/bulk | Yes | Bulk create grades |
+| GET | /api/v1/grades | Yes | Get IPK data |
+| GET | /api/v1/grades/gpa | Yes | Calculate GPA |
+| GET | /api/v1/grades/course | Yes | Get grades for course |
+| PUT | /api/v1/grades | Yes | Update grade |
+| PUT | /api/v1/grades/{course_id} | Yes | Update grade by course |
 
-### Questions (Bank Soal)
+### Grade Components
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/courses/{id}/questions | Yes | List questions for a course |
-| POST | /api/v1/courses/{id}/questions | KURIKULUM+ | Add question |
+| POST | /api/v1/courses/{course_id}/grade-components | KURIKULUM+ | Create grade component |
+| GET | /api/v1/courses/{course_id}/grade-components | Yes | List grade components |
+| PUT | /api/v1/grade-components/{id} | KURIKULUM+ | Update grade component |
+| DELETE | /api/v1/grade-components/{id} | KURIKULUM+ | Delete grade component |
+
+### Questions (Exam System)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/v1/courses/{course_id}/questions | Yes | List questions for a course |
+| POST | /api/v1/questions | KURIKULUM+ | Add question |
+| GET | /api/v1/questions/{id} | Yes | Get question by ID |
 | PUT | /api/v1/questions/{id} | KURIKULUM+ | Update question |
 | DELETE | /api/v1/questions/{id} | KURIKULUM+ | Delete question |
+| POST | /api/v1/questions/{id}/submit | Yes | Submit exam answers |
+| GET | /api/v1/questions/{id}/submissions | KURIKULUM+ | Get exam submissions |
+| GET | /api/v1/users/me/submissions | Yes | Get current user submissions |
+
+### Topics
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/v1/courses/{course_id}/topics-with-sessions | Yes | Topics with sessions |
+| POST | /api/v1/courses/{course_id}/topics | KURIKULUM+ | Create topic |
+| GET | /api/v1/courses/{course_id}/topics | Yes | List topics by course |
+| GET | /api/v1/topics/{id} | Yes | Get topic by ID |
+| GET | /api/v1/topics/{id}/details | Yes | Topic with sessions+materials |
+| PUT | /api/v1/topics/{id} | KURIKULUM+ | Update topic |
+| DELETE | /api/v1/topics/{id} | KURIKULUM+ | Delete topic |
+| POST | /api/v1/topics/{id}/sessions | KURIKULUM+ | Assign session to topic |
+| DELETE | /api/v1/topics/{id}/sessions/{session_id} | KURIKULUM+ | Remove session from topic |
+| PUT | /api/v1/topics/reorder | KURIKULUM+ | Reorder topics |
 
 ### Events (Kalender Akademik)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/events?cawu_id=1 | Yes | List events by cawu |
-| POST | /api/v1/events | SEKRETARIS+ | Create event |
-| PUT | /api/v1/events/{id} | SEKRETARIS+ | Update event |
-| DELETE | /api/v1/events/{id} | SEKRETARIS+ | Delete event |
+| GET | /api/v1/events | Yes | List all events |
+| GET | /api/v1/events/upcoming | Yes | Get upcoming events |
+| GET | /api/v1/events/{id} | Yes | Get event by ID |
+| POST | /api/v1/events | KURIKULUM+ | Create event |
+| PUT | /api/v1/events/{id} | KURIKULUM+ | Update event |
+| DELETE | /api/v1/events/{id} | KURIKULUM+ | Delete event |
+
+### Calendar Events (Kalender Baru)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/v1/calendar | Yes | List all calendar events |
+| GET | /api/v1/calendar/active | Yes | Get active sessions |
+| GET | /api/v1/calendar/upcoming | Yes | Get upcoming events |
+| GET | /api/v1/calendar/{id} | Yes | Get calendar event by ID |
+| POST | /api/v1/calendar | KURIKULUM+ | Create calendar event |
+| PUT | /api/v1/calendar/{id} | KURIKULUM+ | Update calendar event |
+| DELETE | /api/v1/calendar/{id} | KURIKULUM+ | Delete calendar event |
+| PATCH | /api/v1/calendar/{id}/active | KURIKULUM+ | Set active session |
+
+### Schedules (Jadwal)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/v1/schedules | Yes | List all schedules |
+| GET | /api/v1/schedules/active | Yes | Get active schedules |
+| GET | /api/v1/schedules/{id} | Yes | Get schedule by ID |
+| GET | /api/v1/courses/{course_id}/schedules | Yes | Schedules by course |
+| POST | /api/v1/schedules | KURIKULUM+ | Create schedule |
+| PUT | /api/v1/schedules/{id} | KURIKULUM+ | Update schedule |
+| DELETE | /api/v1/schedules/{id} | KURIKULUM+ | Delete schedule |
+
+### Board Gallery (Papan Pengumuman)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/v1/board-gallery | Yes | Create gallery item |
+| GET | /api/v1/board-gallery/session/{session_id} | Yes | Get items by session |
+| GET | /api/v1/board-gallery/{id} | Yes | Get item by ID |
+| PUT | /api/v1/board-gallery/{id} | Yes | Update gallery item |
+| DELETE | /api/v1/board-gallery/{id} | Yes | Delete gallery item |
+| PATCH | /api/v1/board-gallery/{id}/reorder | Yes | Reorder gallery items |
+
+### Bank Soal (Arsip Ujian + Simulasi CBT)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/v1/bank-soal/archives | KURIKULUM+ | Create exam archive |
+| GET | /api/v1/bank-soal/archives | Yes | List exam archives |
+| GET | /api/v1/bank-soal/archives/{id} | Yes | Get archive by ID |
+| PUT | /api/v1/bank-soal/archives/{id} | KURIKULUM+ | Update exam archive |
+| DELETE | /api/v1/bank-soal/archives/{id} | KURIKULUM+ | Delete exam archive |
+| POST | /api/v1/bank-soal/simulations | KURIKULUM+ | Create CBT simulation |
+| GET | /api/v1/bank-soal/simulations | Yes | List simulations |
+| GET | /api/v1/bank-soal/simulations/{id} | Yes | Get simulation by ID |
+| PUT | /api/v1/bank-soal/simulations/{id} | KURIKULUM+ | Update simulation |
+| DELETE | /api/v1/bank-soal/simulations/{id} | KURIKULUM+ | Delete simulation |
+| POST | /api/v1/bank-soal/simulations/{simulation_id}/questions | KURIKULUM+ | Add question to simulation |
+| GET | /api/v1/bank-soal/simulations/{simulation_id}/questions | Yes | Get simulation questions |
+| PUT | /api/v1/bank-soal/questions/{id} | KURIKULUM+ | Update simulation question |
+| DELETE | /api/v1/bank-soal/questions/{id} | KURIKULUM+ | Delete simulation question |
+
+### Excel Import/Export
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/v1/export/courses | KURIKULUM+ | Export courses to Excel |
+| GET | /api/v1/export/template | KURIKULUM+ | Export import template |
+| GET | /api/v1/export/grades | Yes | Export grades to Excel |
+| POST | /api/v1/import/courses | KURIKULUM+ | Import courses from Excel |
+| POST | /api/v1/import/preview | KURIKULUM+ | Preview import data |
 
 ### Search (Omnisearch)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/search/index?cawu_id=1 | Yes | Full search index (cached, ETag) |
+| GET | /api/v1/search/index | Yes | Full search index (cached, ETag) |
+| GET | /api/v1/search | Yes | Search query |
 
 ### Dashboard
 
@@ -605,16 +774,11 @@ perf(cache): optimize search index build query
 |--------|------|------|-------------|
 | GET | /api/v1/dashboard/summary | Yes | Today schedule + pending tasks + active events |
 
-### User Management (Super Admin)
+### User Management
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/v1/users | SUPER_ADMIN | List all users |
-| POST | /api/v1/users | SUPER_ADMIN | Create user |
-| PUT | /api/v1/users/{id}/roles | SUPER_ADMIN | Assign role for a cawu |
-
-### Health
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | /api/health | No | Health check (for Docker) |
+| GET | /api/v1/users | KURIKULUM+ | List all users |
+| GET | /api/v1/users/{id} | KURIKULUM+ | Get user detail |
+| PUT | /api/v1/users/{id}/role | KURIKULUM+ | Update user role |
+| GET | /api/v1/roles | Yes | List available roles |

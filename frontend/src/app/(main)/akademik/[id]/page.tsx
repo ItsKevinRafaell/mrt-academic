@@ -14,6 +14,10 @@ import {
   ClipboardList,
   HelpCircle,
   Calculator,
+  Plus,
+  Pencil,
+  Trash2,
+  Users,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -26,16 +30,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCourse } from "@/lib/api/courses";
-import { getMaterials } from "@/lib/api/materials";
+import { Input } from "@/components/ui/input";
+import { useCourse } from "@/lib/api/courses";
+import { useTopicsWithSessions } from "@/lib/api/topics";
 import { getTasks, updateTaskProgress } from "@/lib/api/tasks";
 import { getQuestions } from "@/lib/api/questions";
-import { getTopicsWithSessions } from "@/lib/api/topics";
 import { getGradeComponents, type ComponentWithGrade } from "@/lib/api/grades";
 import { GRADE_MAP } from "@/lib/constants/grade-map";
 import { TaskModal } from "@/components/tugas/task-modal";
 import { QuestionList } from "@/components/bank-soal/question-list";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { canManageAcademic } from "@/lib/rbac";
+import { CourseDialog } from "./components/CourseDialog";
+import { TopicManagementDialog } from "@/components/admin/TopicManagementDialog";
+import { useConfirm, ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { TaskDetailModal } from "@/components/TaskDetailModal";
 import type { Course, TopicWithSessions, SessionWithMaterials, Task, TaskWithProgress, Question } from "@/types";
 
 export default function MatkulDetailPage() {
@@ -46,32 +55,45 @@ export default function MatkulDetailPage() {
   const sessionParam = searchParams.get("session");
 
   const { role } = useAuthStore();
+  const isKurikulum = role && canManageAcademic(role);
+  const { confirm, ConfirmDialog } = useConfirm();
 
-  const [course, setCourse] = useState<Course | null>(null);
-  const [topics, setTopics] = useState<TopicWithSessions[]>([]);
+  // React Query hooks with caching
+  const { data: course, isLoading: courseLoading, refetch: refetchCourse } = useCourse(matkulId);
+  const { data: topics = [], isLoading: topicsLoading, refetch: refetchTopics } = useTopicsWithSessions(matkulId);
   const [tasks, setTasks] = useState<TaskWithProgress[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [gradeComponents, setGradeComponents] = useState<ComponentWithGrade[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(tabParam);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showTopicDialog, setShowTopicDialog] = useState(false);
+  const [showCourseDialog, setShowCourseDialog] = useState(false);
+  const [monitoringTaskId, setMonitoringTaskId] = useState<number | null>(null);
+
+  // Inline editing state
+  const [editingTopicId, setEditingTopicId] = useState<number | null>(null);
+  const [editingTopicTitle, setEditingTopicTitle] = useState("");
+  const [showQuickAddSession, setShowQuickAddSession] = useState<number | null>(null);
+  const [quickAddSessionTitle, setQuickAddSessionTitle] = useState("");
+
+  // Grade components CRUD state
+  const [showAddComponent, setShowAddComponent] = useState(false);
+  const [newComponentName, setNewComponentName] = useState("");
+  const [newComponentWeight, setNewComponentWeight] = useState("");
+
   const sessionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!matkulId) return;
     Promise.all([
-      getCourse(matkulId).catch(() => null),
-      getTopicsWithSessions(matkulId).catch(() => []),
       getTasks(matkulId).catch(() => []),
       getQuestions(matkulId).catch(() => []),
       getGradeComponents(matkulId).catch(() => []),
     ])
-      .then(([c, t, ts, q, gc]) => {
-        setCourse(c);
-        setTopics(t || []);
+      .then(([ts, q, gc]) => {
         setTasks(ts || []);
         setQuestions(q || []);
-        // Convert GradeComponent[] to ComponentWithGrade[] by adding score property
         const componentsWithScore: ComponentWithGrade[] = (gc || []).map((comp) => ({
           ...comp,
           score: null,
@@ -102,6 +124,91 @@ export default function MatkulDetailPage() {
       console.error("Failed to update task progress:", error);
       alert("Gagal mengubah status tugas. Silakan coba lagi.");
     }
+  };
+
+  // Topic CRUD handlers
+  const handleDeleteTopic = async (topicId: number) => {
+    await confirm({
+      title: "Hapus Topik?",
+      description: "Topik akan dihapus. Sesi dan materi di dalamnya tidak akan dihapus.",
+      confirmText: "Hapus",
+      variant: "destructive",
+      onConfirm: async () => {
+        const { deleteTopic } = await import("@/lib/api/topics");
+        await deleteTopic(topicId);
+        refetchTopics();
+      },
+    });
+  };
+
+  // Grade component CRUD handlers
+  const handleAddComponent = async () => {
+    if (!newComponentName.trim() || !newComponentWeight) return;
+    try {
+      const { createGradeComponent } = await import("@/lib/api/grades");
+      await createGradeComponent(matkulId, newComponentName, parseFloat(newComponentWeight), "default");
+      setNewComponentName("");
+      setNewComponentWeight("");
+      setShowAddComponent(false);
+      // Refresh grade components
+      const gc = await getGradeComponents(matkulId);
+      setGradeComponents((gc || []).map((comp) => ({ ...comp, score: null })));
+    } catch (error) {
+      console.error("Failed to add component:", error);
+      alert("Gagal menambahkan komponen");
+    }
+  };
+
+  const handleDeleteComponent = async (componentId: number) => {
+    await confirm({
+      title: "Hapus Komponen?",
+      description: "Komponen penilaian akan dihapus.",
+      confirmText: "Hapus",
+      variant: "destructive",
+      onConfirm: async () => {
+        const { deleteGradeComponent } = await import("@/lib/api/grades");
+        await deleteGradeComponent(componentId);
+        const gc = await getGradeComponents(matkulId);
+        setGradeComponents((gc || []).map((comp) => ({ ...comp, score: null })));
+      },
+    });
+  };
+
+  const handleUpdateTopic = async (topicId: number) => {
+    if (!editingTopicTitle.trim()) return;
+    const { updateTopic } = await import("@/lib/api/topics");
+    await updateTopic(topicId, { name: editingTopicTitle, description: "" });
+    setEditingTopicId(null);
+    setEditingTopicTitle("");
+    refetchTopics();
+  };
+
+  // Session CRUD handlers
+  const handleCreateSession = async (topicId: number) => {
+    if (!quickAddSessionTitle.trim()) return;
+    const { createSession } = await import("@/lib/api/sessions");
+    await createSession(matkulId, {
+      title: quickAddSessionTitle,
+      description: "",
+      number: 0,
+    });
+    setQuickAddSessionTitle("");
+    setShowQuickAddSession(null);
+    refetchTopics();
+  };
+
+  const handleDeleteSession = async (sessionId: number) => {
+    await confirm({
+      title: "Hapus Sesi?",
+      description: "Sesi dan materi di dalamnya akan dihapus.",
+      confirmText: "Hapus",
+      variant: "destructive",
+      onConfirm: async () => {
+        const { deleteSession } = await import("@/lib/api/sessions");
+        await deleteSession(sessionId);
+        refetchTopics();
+      },
+    });
   };
 
   if (loading) {
@@ -161,7 +268,7 @@ export default function MatkulDetailPage() {
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 shrink-0">
             <BookOpen className="h-7 w-7 text-primary" />
           </div>
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <Badge variant="outline">{course.code}</Badge>
               <Badge variant="secondary">{course.sks} SKS</Badge>
@@ -177,6 +284,26 @@ export default function MatkulDetailPage() {
               </p>
             )}
           </div>
+          {/* Kurikulum controls */}
+          {isKurikulum && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCourseDialog(true)}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTopicDialog(true)}
+              >
+                Kelola Topik
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -203,6 +330,7 @@ export default function MatkulDetailPage() {
 
         {/* Materi Tab */}
         <TabsContent value="materi" className="mt-4">
+          {/* Topics List */}
           {topics.length === 0 ? (
             <EmptyState icon={BookOpen} message="Belum ada topik tersedia" />
           ) : (
@@ -214,43 +342,103 @@ export default function MatkulDetailPage() {
                   className="border rounded-lg px-4"
                 >
                   <AccordionTrigger className="text-left hover:no-underline py-3">
-                    <div className="flex items-center gap-2 w-full">
+                    <div className="flex items-center gap-2 w-full pr-4">
                       <BookOpen className="h-5 w-5 flex-shrink-0" />
-                      <CardTitle className="text-lg">{topic.title}</CardTitle>
-                      <Badge variant="secondary" className="text-xs ml-auto">
+                      {editingTopicId === topic.id ? (
+                        <Input
+                          className="h-8 flex-1"
+                          value={editingTopicTitle}
+                          onChange={(e) => setEditingTopicTitle(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.key === "Enter" && handleUpdateTopic(topic.id)}
+                          autoFocus
+                        />
+                      ) : (
+                        <CardTitle className="text-lg flex-1">{topic.title}</CardTitle>
+                      )}
+                      <Badge variant="secondary" className="text-xs shrink-0">
                         {topic.sessions?.length || 0} sesi
                       </Badge>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    {topic.description && (
-                      <p className="text-sm text-muted-foreground mb-4">
-                        {topic.description}
-                      </p>
-                    )}
-                    {!topic.sessions || topic.sessions.length === 0 ? (
+                    <div className="flex items-center justify-between mb-3">
                       <p className="text-sm text-muted-foreground">
+                        {topic.description || "Tidak ada deskripsi"}
+                      </p>
+                      {isKurikulum && (
+                        <div className="flex gap-1">
+                          {editingTopicId === topic.id ? (
+                            <>
+                              <Button size="sm" variant="ghost" onClick={() => handleUpdateTopic(topic.id)}>Simpan</Button>
+                              <Button size="sm" variant="ghost" onClick={() => { setEditingTopicId(null); setEditingTopicTitle(""); }}>Batal</Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingTopicId(topic.id); setEditingTopicTitle(topic.title); }}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleDeleteTopic(topic.id); }}>
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sessions inside topic */}
+                    {!topic.sessions || topic.sessions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground mb-3">
                         Belum ada sesi untuk topik ini
                       </p>
                     ) : (
-                      <Accordion
-                        type="multiple"
-                        defaultValue={sessionParam ? [`session-${sessionParam}`] : undefined}
-                      >
+                      <div className="space-y-2 mb-3">
                         {topic.sessions.map((session, index) => (
-                          <Link
-                            key={session.id}
-                            href={`/akademik/${matkulId}/sesi/${session.id}`}
-                            className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent transition-colors"
-                          >
-                            <Badge variant="outline" className="text-xs shrink-0">
-                              Sesi {session.number > 0 ? session.number : index + 1}
-                            </Badge>
-                            <span className="font-medium text-sm">{session.title}</span>
-                            <ArrowLeft className="h-3 w-3 rotate-180 ml-auto text-muted-foreground shrink-0" />
-                          </Link>
+                          <div key={session.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                            <Link
+                              href={`/akademik/${matkulId}/sesi/${session.id}`}
+                              className="flex items-center gap-2 flex-1"
+                            >
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                Sesi {session.number > 0 ? session.number : index + 1}
+                              </Badge>
+                              <span className="font-medium text-sm">{session.title}</span>
+                            </Link>
+                            {isKurikulum && (
+                              <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={() => handleDeleteSession(session.id)}>
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
                         ))}
-                      </Accordion>
+                      </div>
+                    )}
+
+                    {/* Quick Add Session */}
+                    {isKurikulum && (
+                      !showQuickAddSession || showQuickAddSession === topic.id ? (
+                        <div className="flex gap-2">
+                          {showQuickAddSession === topic.id ? (
+                            <>
+                              <Input
+                                placeholder="Nama sesi..."
+                                value={quickAddSessionTitle}
+                                onChange={(e) => setQuickAddSessionTitle(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleCreateSession(topic.id)}
+                                className="h-8"
+                              />
+                              <Button size="sm" onClick={() => handleCreateSession(topic.id)}>Simpan</Button>
+                              <Button size="sm" variant="ghost" onClick={() => { setShowQuickAddSession(null); setQuickAddSessionTitle(""); }}>Batal</Button>
+                            </>
+                          ) : (
+                            <Button size="sm" variant="ghost" onClick={() => setShowQuickAddSession(topic.id)}>
+                              <Plus className="h-3 w-3 mr-1" />
+                              Tambah Sesi
+                            </Button>
+                          )}
+                        </div>
+                      ) : null
                     )}
                   </AccordionContent>
                 </AccordionItem>
@@ -318,6 +506,20 @@ export default function MatkulDetailPage() {
                         })}
                       </p>
                     </div>
+                    {isKurikulum && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMonitoringTaskId(task.id);
+                        }}
+                        className="mr-2"
+                      >
+                        <Users className="h-4 w-4 mr-1" />
+                        Monitoring
+                      </Button>
+                    )}
                     {isCompleted && (
                       <Badge variant="success" className="text-xs">
                         Selesai
@@ -339,12 +541,47 @@ export default function MatkulDetailPage() {
         <TabsContent value="nilai" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Komponen Penilaian
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Komponen Penilaian
+                </CardTitle>
+                {isKurikulum && (
+                  <Button size="sm" onClick={() => setShowAddComponent(true)}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Tambah Komponen
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Add Component Form */}
+              {showAddComponent && (
+                <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Nama komponen (e.g. UTS)"
+                      value={newComponentName}
+                      onChange={(e) => setNewComponentName(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Bobot %"
+                      value={newComponentWeight}
+                      onChange={(e) => setNewComponentWeight(e.target.value)}
+                      className="w-24"
+                    />
+                    <Button onClick={handleAddComponent} disabled={!newComponentName || !newComponentWeight}>
+                      Simpan
+                    </Button>
+                    <Button variant="outline" onClick={() => { setShowAddComponent(false); setNewComponentName(""); setNewComponentWeight(""); }}>
+                      Batal
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {gradeComponents.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   Belum ada komponen penilaian untuk mata kuliah ini
@@ -360,6 +597,11 @@ export default function MatkulDetailPage() {
                             Bobot: {comp.weight}%
                           </div>
                         </div>
+                        {isKurikulum && (
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteComponent(comp.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                         <div className="text-right">
                           <div className="text-lg font-semibold">
                             {comp.score != null ? comp.score.toFixed(1) : "-"}
@@ -424,6 +666,34 @@ export default function MatkulDetailPage() {
           open={!!selectedTask}
           onClose={() => setSelectedTask(null)}
           onToggleComplete={handleToggleTask}
+        />
+      )}
+
+      {/* Course Edit Dialog */}
+      <CourseDialog
+        open={showCourseDialog}
+        onOpenChange={setShowCourseDialog}
+        course={course}
+        onSaved={() => setShowCourseDialog(false)}
+      />
+
+      {/* Topic Management Dialog */}
+      <TopicManagementDialog
+        open={showTopicDialog}
+        onOpenChange={setShowTopicDialog}
+        courses={[course]}
+        initialCourse={course}
+      />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog />
+
+      {/* Monitoring Modal */}
+      {monitoringTaskId && (
+        <TaskDetailModal
+          taskId={monitoringTaskId}
+          open={!!monitoringTaskId}
+          onOpenChange={(open) => !open && setMonitoringTaskId(null)}
         />
       )}
     </div>

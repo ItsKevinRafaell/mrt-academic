@@ -9,7 +9,7 @@ export interface ExamArchive {
   exam_type: ExamType;
   year: number;
   file_url: string;
-  file_type?: string;
+  file_type: string;
   created_at: string;
   updated_at: string;
 }

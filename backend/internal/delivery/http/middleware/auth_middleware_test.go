@@ -4,43 +4,65 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"mrt-backend/internal/domain"
+	"mrt-backend/internal/usecase"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
-type mockAuthService struct {
-	validateFunc func(token string) (*domain.User, error)
+const testJWTSecret = "test-secret-key-for-middleware"
+
+func generateTestToken(userID, email, role string) string {
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"email":   email,
+		"role":    role,
+		"exp":     time.Now().Add(1 * time.Hour).Unix(),
+		"iat":     time.Now().Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, _ := token.SignedString([]byte(testJWTSecret))
+	return signed
 }
 
-func (m *mockAuthService) ValidateToken(token string) (*domain.User, error) {
-	return m.validateFunc(token)
+func generateExpiredToken(userID, email, role string) string {
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"email":   email,
+		"role":    role,
+		"exp":     time.Now().Add(-1 * time.Hour).Unix(),
+		"iat":     time.Now().Add(-2 * time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, _ := token.SignedString([]byte(testJWTSecret))
+	return signed
+}
+
+func newTestMiddleware() *AuthMiddleware {
+	uc := usecase.NewAuthUsecase(nil, nil, testJWTSecret)
+	return &AuthMiddleware{authUsecase: uc}
 }
 
 func TestAuthMiddleware_ValidToken(t *testing.T) {
-	mockUser := &domain.User{
-		ID:    "user123",
-		Email: "test@example.com",
-		Role:  domain.RoleStudent,
-	}
-
-	mockAuth := &mockAuthService{
-		validateFunc: func(token string) (*domain.User, error) {
-			return mockUser, nil
-		},
-	}
-
-	middleware := NewAuthMiddleware(mockAuth)
+	middleware := newTestMiddleware()
 
 	handler := middleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Context().Value(UserIDKey).(string)
-		if userID != "user123" {
-			t.Errorf("expected userID user123, got %s", userID)
+		userID := r.Context().Value(ContextKeyUserID).(string)
+		if userID != "user-123" {
+			t.Errorf("expected userID user-123, got %s", userID)
+		}
+		role := r.Context().Value(ContextKeyRole).(string)
+		if role != domain.RoleMahasiswa {
+			t.Errorf("expected role %s, got %s", domain.RoleMahasiswa, role)
 		}
 		w.WriteHeader(http.StatusOK)
 	}))
 
+	token := generateTestToken("user-123", "test@example.com", domain.RoleMahasiswa)
 	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("Authorization", "Bearer valid-token")
+	req.Header.Set("Authorization", "Bearer "+token)
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -51,8 +73,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 }
 
 func TestAuthMiddleware_MissingToken(t *testing.T) {
-	mockAuth := &mockAuthService{}
-	middleware := NewAuthMiddleware(mockAuth)
+	middleware := newTestMiddleware()
 
 	handler := middleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -69,20 +90,14 @@ func TestAuthMiddleware_MissingToken(t *testing.T) {
 }
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
-	mockAuth := &mockAuthService{
-		validateFunc: func(token string) (*domain.User, error) {
-			return nil, domain.ErrInvalidToken
-		},
-	}
-
-	middleware := NewAuthMiddleware(mockAuth)
+	middleware := newTestMiddleware()
 
 	handler := middleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
 	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("Authorization", "Bearer invalid-token")
+	req.Header.Set("Authorization", "Bearer invalid-token-string")
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -93,20 +108,15 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 }
 
 func TestAuthMiddleware_ExpiredToken(t *testing.T) {
-	mockAuth := &mockAuthService{
-		validateFunc: func(token string) (*domain.User, error) {
-			return nil, domain.ErrTokenExpired
-		},
-	}
-
-	middleware := NewAuthMiddleware(mockAuth)
+	middleware := newTestMiddleware()
 
 	handler := middleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
+	token := generateExpiredToken("user-123", "test@example.com", domain.RoleMahasiswa)
 	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("Authorization", "Bearer expired-token")
+	req.Header.Set("Authorization", "Bearer "+token)
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -116,32 +126,19 @@ func TestAuthMiddleware_ExpiredToken(t *testing.T) {
 	}
 }
 
-func TestRequireRole_AllowedRole(t *testing.T) {
-	mockUser := &domain.User{
-		ID:    "user123",
-		Email: "admin@example.com",
-		Role:  domain.RoleAdmin,
-	}
+func TestRequireAdmin_AllowedRole(t *testing.T) {
+	middleware := newTestMiddleware()
+	admin := middleware.RequireAdmin()
 
-	mockAuth := &mockAuthService{
-		validateFunc: func(token string) (*domain.User, error) {
-			return mockUser, nil
-		},
-	}
-
-	authMiddleware := NewAuthMiddleware(mockAuth)
-	roleMiddleware := NewRoleMiddleware()
-
-	handler := authMiddleware.Authenticate(
-		roleMiddleware.RequireRole(domain.RoleAdmin)(
-			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			}),
-		),
+	handler := middleware.Authenticate(
+		admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})),
 	)
 
+	token := generateTestToken("admin-1", "admin@example.com", domain.RoleSuperAdmin)
 	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("Authorization", "Bearer admin-token")
+	req.Header.Set("Authorization", "Bearer "+token)
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -151,32 +148,19 @@ func TestRequireRole_AllowedRole(t *testing.T) {
 	}
 }
 
-func TestRequireRole_ForbiddenRole(t *testing.T) {
-	mockUser := &domain.User{
-		ID:    "user123",
-		Email: "student@example.com",
-		Role:  domain.RoleStudent,
-	}
+func TestRequireAdmin_ForbiddenRole(t *testing.T) {
+	middleware := newTestMiddleware()
+	admin := middleware.RequireAdmin()
 
-	mockAuth := &mockAuthService{
-		validateFunc: func(token string) (*domain.User, error) {
-			return mockUser, nil
-		},
-	}
-
-	authMiddleware := NewAuthMiddleware(mockAuth)
-	roleMiddleware := NewRoleMiddleware()
-
-	handler := authMiddleware.Authenticate(
-		roleMiddleware.RequireRole(domain.RoleAdmin)(
-			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			}),
-		),
+	handler := middleware.Authenticate(
+		admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})),
 	)
 
+	token := generateTestToken("user-1", "student@example.com", domain.RoleMahasiswa)
 	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("Authorization", "Bearer student-token")
+	req.Header.Set("Authorization", "Bearer "+token)
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -187,9 +171,9 @@ func TestRequireRole_ForbiddenRole(t *testing.T) {
 }
 
 func TestCORS(t *testing.T) {
-	middleware := NewCORSMiddleware()
+	cors := NewCORSMiddleware()
 
-	handler := middleware.Handle(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := cors.Handle(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -198,8 +182,8 @@ func TestCORS(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rr.Code)
+	if rr.Code != http.StatusNoContent {
+		t.Errorf("expected status 204, got %d", rr.Code)
 	}
 
 	if rr.Header().Get("Access-Control-Allow-Origin") != "*" {

@@ -1,8 +1,16 @@
 import { api, unwrapData } from "./client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Material, MaterialInput, SessionWithMaterials } from "@/types";
 
 export type { Material } from "@/types";
 
+// Query keys
+export const materialKeys = {
+  bySession: (sessionId: number) => ["materials", "session", sessionId] as const,
+  byCourse: (courseId: number) => ["materials", "course", courseId] as const,
+};
+
+// API functions
 export async function getMaterials(
   courseId: number
 ): Promise<SessionWithMaterials[]> {
@@ -37,4 +45,50 @@ export async function updateMaterial(
 
 export async function deleteMaterial(materialId: number): Promise<void> {
   await api.delete(`/materials/${materialId}`);
+}
+
+// React Query hooks
+export function useMaterialsBySession(sessionId: number) {
+  return useQuery({
+    queryKey: materialKeys.bySession(sessionId),
+    queryFn: () => getMaterialsBySession(sessionId),
+  });
+}
+
+export function useMaterialsByCourse(courseId: number) {
+  return useQuery({
+    queryKey: materialKeys.byCourse(courseId),
+    queryFn: () => getMaterialsByCourse(courseId),
+  });
+}
+
+export function useCreateMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createMaterial,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["materials"] });
+    },
+  });
+}
+
+export function useUpdateMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: number; input: MaterialInput }) =>
+      updateMaterial(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["materials"] });
+    },
+  });
+}
+
+export function useDeleteMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteMaterial,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["materials"] });
+    },
+  });
 }
