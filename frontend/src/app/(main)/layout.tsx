@@ -39,13 +39,38 @@ export default function MainLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      {/* Mobile menu button */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="lg:hidden fixed top-3 left-3 z-50 p-2 rounded-lg bg-card border border-border shadow-sm"
+        aria-label="Open menu"
+      >
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/50"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar - collapsible */}
-      <Sidebar />
+      <div className={`
+        fixed lg:relative inset-y-0 left-0 z-40 lg:z-auto
+        transform transition-transform duration-300 lg:transform-none
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}>
+        <Sidebar />
+      </div>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Minimal top bar with command bar trigger and cawu switcher */}
-        <div className="flex items-center justify-between px-6 py-3 bg-card border-b border-border">
+        <div className="flex items-center justify-between px-4 lg:px-6 py-3 bg-card border-b border-border">
           <CawuSwitcher />
           <button
             onClick={() => {
@@ -56,7 +81,7 @@ export default function MainLayout({
               });
               document.dispatchEvent(event);
             }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 transition-all duration-200 text-sm text-muted-foreground max-w-md w-full ml-4"
+            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 transition-all duration-200 text-sm text-muted-foreground max-w-md w-full ml-4"
           >
             <Search className="h-4 w-4" />
             <span className="flex-1 text-left">Cari mata kuliah, sesi...</span>
@@ -67,7 +92,7 @@ export default function MainLayout({
         </div>
 
         {/* Main content - fills remaining space */}
-        <main className="flex-1 overflow-y-auto p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 pt-12 lg:pt-8">{children}</main>
       </div>
 
       {/* Command Bar (Ctrl+K) */}

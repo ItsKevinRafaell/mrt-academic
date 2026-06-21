@@ -155,7 +155,8 @@ export function Sidebar() {
     <aside
       className={cn(
         "relative flex flex-col h-screen bg-card border-r border-border transition-all duration-300",
-        collapsed ? "w-20" : "w-64"
+        collapsed ? "w-20" : "w-64",
+        "lg:h-screen h-full"
       )}
     >
       {/* Logo and Toggle */}
