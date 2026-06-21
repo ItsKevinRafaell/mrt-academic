@@ -25,6 +25,7 @@ export function EnhancedDocumentScanner({ onScanComplete, onClose, autoProcess =
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [title, setTitle] = useState("")
   const [isUploading, setIsUploading] = useState(false)
+  const [cameraReady, setCameraReady] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -35,18 +36,29 @@ export function EnhancedDocumentScanner({ onScanComplete, onClose, autoProcess =
         video: { facingMode: "environment", width: 1280, height: 720 }
       })
       streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current!.play().catch(() => {})
-        }
-      }
       setHasCamera(true)
+      setCameraReady(false)
     } catch (err) {
       console.error("Camera error:", err)
       setHasCamera(false)
     }
   }, [])
+
+  // Start video playback when stream is ready
+  React.useEffect(() => {
+    if (hasCamera && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current
+      videoRef.current.play().then(() => {
+        setCameraReady(true)
+      }).catch((err) => {
+        console.error("Video play error:", err)
+        setCameraReady(false)
+      })
+    }
+    return () => {
+      setCameraReady(false)
+    }
+  }, [hasCamera])
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -151,16 +163,24 @@ export function EnhancedDocumentScanner({ onScanComplete, onClose, autoProcess =
           <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
             <video
               ref={videoRef}
-              autoPlay
               playsInline
               muted
               className="w-full h-full object-cover"
             />
+            {!cameraReady && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-white" />
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
-            <Button onClick={capturePhoto} className="flex-1 gap-2">
+            <Button
+              onClick={capturePhoto}
+              disabled={!cameraReady}
+              className="flex-1 gap-2"
+            >
               <Camera className="w-4 h-4" />
-              Ambil Foto
+              {cameraReady ? "Ambil Foto" : "Loading..."}
             </Button>
             <Button variant="outline" onClick={stopCamera} className="gap-2">
               Batal
