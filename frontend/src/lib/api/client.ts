@@ -1,17 +1,10 @@
 import axios from "axios";
 
-const getApiBaseUrl = (): string => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-  if (typeof window !== "undefined") {
-    return `http://${window.location.hostname}:9090/api/v1`;
-  }
-  return "http://localhost:9090/api/v1";
-};
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:9090/api/v1";
 
 export const api = axios.create({
-  baseURL: getApiBaseUrl(),
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
