@@ -6,11 +6,7 @@ import { useAuthStore } from "@/lib/stores/auth-store";
 
 export default function Home() {
   const router = useRouter();
-  const { user, isLoading, hydrate } = useAuthStore();
-
-  useEffect(() => {
-    hydrate();
-  }, [hydrate]);
+  const { user, isLoading } = useAuthStore();
 
   useEffect(() => {
     if (!isLoading) {
