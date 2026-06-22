@@ -187,7 +187,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className="h-8 w-8"
+          className="h-8 w-8 sm:hidden"
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />

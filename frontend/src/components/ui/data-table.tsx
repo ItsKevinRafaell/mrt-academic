@@ -163,7 +163,7 @@ export function DataTable<T extends Record<string, any>>({
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -217,7 +217,7 @@ export function DataTable<T extends Record<string, any>>({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 overflow-x-auto">
           <div className="text-sm text-muted-foreground">
             Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
             {Math.min(currentPage * pageSize, filteredData.length)} dari{" "}

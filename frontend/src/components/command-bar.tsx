@@ -228,7 +228,7 @@ export function CommandBar() {
           </div>
 
           <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-muted/30">
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <kbd className="h-5 px-1.5 rounded border border-border bg-muted font-mono text-[10px]">
                   ↑↓

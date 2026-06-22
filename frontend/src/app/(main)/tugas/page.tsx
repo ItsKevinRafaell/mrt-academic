@@ -191,7 +191,7 @@ export default function TasksPage() {
                 <div className="flex items-center gap-4 w-full">
                   <button
                     onClick={() => handleToggle(task.id, true)}
-                    className="h-6 w-6 rounded-full border-2 border-muted-foreground hover:border-green-500 hover:bg-green-500/10 transition-colors shrink-0"
+                    className="h-11 w-11 rounded-full border-2 border-muted-foreground hover:border-green-500 hover:bg-green-500/10 transition-colors shrink-0"
                   />
                   <div className="flex-1 min-w-0" onClick={() => setSelectedTask(task)}>
                     <div className="flex items-center gap-2">
@@ -245,7 +245,7 @@ export default function TasksPage() {
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => handleToggle(task.id, false)}
-                    className="h-6 w-6 rounded-full bg-green-500 border-2 border-green-500 hover:border-muted-foreground hover:bg-transparent transition-colors shrink-0 flex items-center justify-center"
+                    className="h-11 w-11 rounded-full bg-green-500 border-2 border-green-500 hover:border-muted-foreground hover:bg-transparent transition-colors shrink-0 flex items-center justify-center"
                   >
                     <CheckCircle2 className="h-4 w-4 text-white" />
                   </button>

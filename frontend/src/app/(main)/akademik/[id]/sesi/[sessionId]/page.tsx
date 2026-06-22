@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { PageContainer } from "@/components/ui/page-container";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -183,19 +184,21 @@ export default function SessionDetailPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-32 bg-muted rounded-xl" />
-          <div className="h-64 bg-muted rounded-xl" />
-          <div className="h-96 bg-muted rounded-xl" />
+      <PageContainer>
+        <div className="space-y-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-32 bg-muted rounded-xl" />
+            <div className="h-64 bg-muted rounded-xl" />
+            <div className="h-96 bg-muted rounded-xl" />
+          </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (!session) {
     return (
-      <div className="container mx-auto p-6">
+      <PageContainer>
         <Card className="p-12 text-center">
           <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
           <h2 className="text-xl font-semibold mb-2">Sesi Tidak Ditemukan</h2>
@@ -207,12 +210,12 @@ export default function SessionDetailPage() {
             Kembali ke Mata Kuliah
           </Button>
         </Card>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="px-4 py-4 lg:px-8 lg:py-6 space-y-4 lg:space-y-6 max-w-6xl mx-auto">
+    <PageContainer className="space-y-4 lg:space-y-6">
       {/* Breadcrumb Navigation */}
       <Breadcrumb
         items={[
@@ -221,17 +224,6 @@ export default function SessionDetailPage() {
           { label: `Sesi ${session.number}` },
         ]}
       />
-
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() => router.push(`/akademik/${courseId}`)}
-        className="gap-2 -mt-2"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span className="hidden sm:inline">Kembali ke Mata Kuliah</span>
-        <span className="sm:hidden">Kembali</span>
-      </Button>
 
       {/* Session Header */}
       <Card className="overflow-hidden border-primary/20">
@@ -440,6 +432,6 @@ export default function SessionDetailPage() {
         </div>
         <NotesPage sessionId={sessionId} />
       </section>
-    </div>
+    </PageContainer>
   );
 }

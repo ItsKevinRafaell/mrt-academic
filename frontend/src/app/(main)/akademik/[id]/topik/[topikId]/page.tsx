@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Lightbox } from "@/components/ui/lightbox";
+import { PageContainer } from "@/components/ui/page-container";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getTopicDetails } from "@/lib/api/topics";
 import { getMaterialsBySession } from "@/lib/api/materials";
 import { getPhotosBySession } from "@/lib/api/photos";
@@ -159,37 +161,37 @@ export default function TopikDetailPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
+      <PageContainer>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/3" />
           <div className="h-4 bg-muted rounded w-1/2" />
           <div className="h-64 bg-muted rounded" />
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (!topic) {
     return (
-      <div className="container mx-auto p-6">
+      <PageContainer>
         <div className="text-center py-12">
           <p className="text-muted-foreground">Topik tidak ditemukan</p>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() => router.push(`/akademik/${courseId}`)}
-        className="mb-6"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Kembali ke Mata Kuliah
-      </Button>
+    <PageContainer>
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "Akademik", href: "/akademik" },
+          { label: `Course ${courseId}`, href: `/akademik/${courseId}` },
+          { label: topic.title },
+        ]}
+        className="mb-4"
+      />
 
       {/* Topic Header */}
       <div className="mb-8">
@@ -330,6 +332,6 @@ export default function TopikDetailPage() {
           caption={selectedPhoto.caption}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

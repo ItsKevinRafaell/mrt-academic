@@ -349,13 +349,13 @@ export default function BankSoalPage() {
           </div>
         </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <Label className="whitespace-nowrap">Mata Kuliah:</Label>
         <Select
           value={selectedCourseId?.toString() || ""}
           onValueChange={(val) => setSelectedCourseId(parseInt(val))}
         >
-          <SelectTrigger className="w-64">
+          <SelectTrigger className="w-full sm:w-64">
             <SelectValue placeholder="Pilih mata kuliah" />
           </SelectTrigger>
           <SelectContent>
@@ -381,14 +381,14 @@ export default function BankSoalPage() {
         </TabsList>
 
         <TabsContent value="arsip" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap justify-between items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2">
               <Search className="h-4 w-4" />
               <Input
                 placeholder="Cari arsip..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
+                className="w-full sm:w-64"
               />
             </div>
             <Button
@@ -468,14 +468,14 @@ export default function BankSoalPage() {
         </TabsContent>
 
         <TabsContent value="simulasi" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap justify-between items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2">
               <Search className="h-4 w-4" />
               <Input
                 placeholder="Cari simulasi..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
+                className="w-full sm:w-64"
               />
             </div>
             <Button

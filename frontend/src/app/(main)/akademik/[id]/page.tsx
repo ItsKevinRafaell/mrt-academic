@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft,
   BookOpen,
   FileText,
   Link as LinkIcon,
@@ -31,6 +30,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { PageContainer } from "@/components/ui/page-container";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useCourse } from "@/lib/api/courses";
 import { useTopicsWithSessions } from "@/lib/api/topics";
 import { getTasks, updateTaskProgress } from "@/lib/api/tasks";
@@ -222,13 +224,15 @@ export default function MatkulDetailPage() {
 
   if (!course) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-        <p className="text-lg font-medium">Mata kuliah tidak ditemukan</p>
-        <Button variant="link" asChild>
-          <Link href="/akademik">Kembali ke Akademik</Link>
-        </Button>
-      </div>
+      <PageContainer>
+        <div className="flex flex-col items-center justify-center py-12">
+          <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg font-medium">Mata kuliah tidak ditemukan</p>
+          <Button variant="link" asChild>
+            <Link href="/akademik">Kembali ke Akademik</Link>
+          </Button>
+        </div>
+      </PageContainer>
     );
   }
 
@@ -251,21 +255,14 @@ export default function MatkulDetailPage() {
   };
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <PageContainer className="space-y-4 lg:space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/akademik" className="hover:text-primary">Akademik</Link>
-        <span>›</span>
-        <span className="text-foreground">{course.name}</span>
-      </div>
-
-      {/* Back link */}
-      <Button variant="ghost" size="sm" asChild className="-mt-2">
-        <Link href="/akademik">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Kembali
-        </Link>
-      </Button>
+      <Breadcrumb
+        items={[
+          { label: "Akademik", href: "/akademik" },
+          { label: course.name },
+        ]}
+      />
 
       {/* Course header */}
       <div className="rounded-lg border bg-card p-4 lg:p-6">
@@ -338,7 +335,7 @@ export default function MatkulDetailPage() {
         {/* Materi Tab */}
         <TabsContent value="materi" className="mt-4">
           {topics.length === 0 ? (
-            <EmptyState icon={BookOpen} message="Belum ada topik tersedia" />
+            <EmptyState icon={BookOpen} title="Belum ada topik tersedia" />
           ) : (
             <Accordion type="multiple" className="w-full space-y-3">
               {topics.map((topic) => (
@@ -458,7 +455,7 @@ export default function MatkulDetailPage() {
           {tasks.length === 0 ? (
             <EmptyState
               icon={ClipboardList}
-              message="Belum ada tugas untuk matkul ini"
+              title="Belum ada tugas untuk matkul ini"
             />
           ) : (
             <div className="space-y-2">
@@ -702,47 +699,32 @@ export default function MatkulDetailPage() {
           onOpenChange={(open) => !open && setMonitoringTaskId(null)}
         />
       )}
-    </div>
-  );
-}
-
-function EmptyState({
-  icon: Icon,
-  message,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  message: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-center justify-center py-12">
-        <Icon className="h-12 w-12 text-muted-foreground mb-4" />
-        <p className="text-muted-foreground">{message}</p>
-      </CardContent>
-    </Card>
+    </PageContainer>
   );
 }
 
 function MatkulDetailSkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton className="h-8 w-24" />
-      <div className="rounded-lg border p-6">
-        <div className="flex items-start gap-4">
-          <Skeleton className="h-14 w-14 rounded-xl" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-7 w-64" />
-            <Skeleton className="h-4 w-48" />
+    <PageContainer>
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="rounded-lg border p-6">
+          <div className="flex items-start gap-4">
+            <Skeleton className="h-14 w-14 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-7 w-64" />
+              <Skeleton className="h-4 w-48" />
+            </div>
           </div>
         </div>
+        <Skeleton className="h-10 w-full" />
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
       </div>
-      <Skeleton className="h-10 w-full" />
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-16 w-full" />
-        ))}
-      </div>
-    </div>
+    </PageContainer>
   );
 }

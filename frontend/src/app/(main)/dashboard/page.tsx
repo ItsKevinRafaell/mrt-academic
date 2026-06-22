@@ -18,6 +18,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageContainer } from '@/components/ui/page-container';
 import { getActiveSchedules, getSchedules, type Schedule } from '@/lib/api/calendar';
 import { getDashboardSummary, type DashboardSummary } from '@/lib/api/dashboard';
 import Link from 'next/link';
@@ -73,21 +75,21 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
+      <PageContainer>
         <div className="animate-pulse space-y-4">
-          <div className="h-32 bg-muted rounded-xl"></div>
+          <Skeleton className="h-32 w-full rounded-xl" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-48 bg-muted rounded-xl"></div>
+              <Skeleton key={i} className="h-48 w-full rounded-xl" />
             ))}
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <PageContainer className="space-y-6">
       {/* Live Session Banner */}
       {activeSchedule && (
         <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 overflow-hidden">
@@ -304,6 +306,6 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }
