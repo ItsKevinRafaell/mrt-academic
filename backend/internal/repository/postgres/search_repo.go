@@ -3,20 +3,39 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"mrt-backend/internal/domain"
 	"strings"
+	"sync"
 	"time"
 )
 
 type SearchRepo struct {
 	db    *sql.DB
 	cache *domain.SearchCache
+	ttl   time.Duration
+	mu    sync.RWMutex
 }
 
-func NewSearchRepo(db *sql.DB) *SearchRepo {
-	return &SearchRepo{
+func NewSearchRepo(db *sql.DB, ttl time.Duration) *SearchRepo {
+	repo := &SearchRepo{
 		db:    db,
 		cache: &domain.SearchCache{},
+		ttl:   ttl,
+	}
+	go repo.periodicRebuild()
+	return repo
+}
+
+func (r *SearchRepo) periodicRebuild() {
+	if r.ttl <= 0 {
+		r.ttl = 5 * time.Minute
+	}
+	for {
+		if err := r.RebuildCache(); err != nil {
+			log.Printf("search cache rebuild failed: %v", err)
+		}
+		time.Sleep(r.ttl)
 	}
 }
 
@@ -115,24 +134,46 @@ func (r *SearchRepo) RebuildCache() error {
 }
 
 func (r *SearchRepo) GetCache() *domain.SearchCache {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.cache
 }
 
+func (r *SearchRepo) InvalidateCache() {
+	r.mu.Lock()
+	r.cache.Data = nil
+	r.mu.Unlock()
+}
+
 func (r *SearchRepo) GetIndex() (*domain.SearchIndex, error) {
-	if r.cache.Data == nil {
-		if err := r.RebuildCache(); err != nil {
-			return nil, err
-		}
+	r.mu.RLock()
+	if r.cache.Data != nil {
+		data := r.cache.Data
+		r.mu.RUnlock()
+		return data, nil
 	}
-	return r.cache.Data, nil
+	r.mu.RUnlock()
+
+	if err := r.RebuildCache(); err != nil {
+		return nil, err
+	}
+	r.mu.RLock()
+	data := r.cache.Data
+	r.mu.RUnlock()
+	return data, nil
 }
 
 func (r *SearchRepo) Search(query string) (*domain.SearchIndex, error) {
+	r.mu.RLock()
 	if r.cache.Data == nil {
+		r.mu.RUnlock()
 		if err := r.RebuildCache(); err != nil {
 			return nil, err
 		}
+		r.mu.RLock()
 	}
+	cached := r.cache.Data
+	r.mu.RUnlock()
 
 	queryLower := strings.ToLower(query)
 	result := &domain.SearchIndex{
@@ -141,19 +182,19 @@ func (r *SearchRepo) Search(query string) (*domain.SearchIndex, error) {
 		Tasks:    []domain.SearchItem{},
 	}
 
-	for _, item := range r.cache.Data.Courses {
+	for _, item := range cached.Courses {
 		if strings.Contains(strings.ToLower(item.Title), queryLower) {
 			result.Courses = append(result.Courses, item)
 		}
 	}
 
-	for _, item := range r.cache.Data.Sessions {
+	for _, item := range cached.Sessions {
 		if strings.Contains(strings.ToLower(item.Title), queryLower) {
 			result.Sessions = append(result.Sessions, item)
 		}
 	}
 
-	for _, item := range r.cache.Data.Tasks {
+	for _, item := range cached.Tasks {
 		if strings.Contains(strings.ToLower(item.Title), queryLower) {
 			result.Tasks = append(result.Tasks, item)
 		}

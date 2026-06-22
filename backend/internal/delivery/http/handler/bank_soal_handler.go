@@ -26,7 +26,7 @@ func (h *BankSoalHandler) CreateExamArchive(w http.ResponseWriter, r *http.Reque
 
 	archive, err := h.bankSoalUsecase.CreateExamArchive(r.Context(), req)
 	if err != nil {
-		http.Error(w, `{"error":"Bad request"}`, http.StatusBadRequest)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -45,7 +45,7 @@ func (h *BankSoalHandler) GetExamArchives(w http.ResponseWriter, r *http.Request
 
 	archives, err := h.bankSoalUsecase.GetExamArchives(r.Context(), courseID)
 	if err != nil {
-		http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *BankSoalHandler) GetExamArchiveByID(w http.ResponseWriter, r *http.Requ
 
 	archive, err := h.bankSoalUsecase.GetExamArchiveByID(r.Context(), id)
 	if err != nil {
-		http.Error(w, `{"error":"Resource not found"}`, http.StatusNotFound)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusNotFound)
 		return
 	}
 
@@ -87,7 +87,7 @@ func (h *BankSoalHandler) UpdateExamArchive(w http.ResponseWriter, r *http.Reque
 
 	archive, err := h.bankSoalUsecase.UpdateExamArchive(r.Context(), id, req)
 	if err != nil {
-		http.Error(w, `{"error":"Bad request"}`, http.StatusBadRequest)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -104,7 +104,7 @@ func (h *BankSoalHandler) DeleteExamArchive(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := h.bankSoalUsecase.DeleteExamArchive(r.Context(), id); err != nil {
-		http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (h *BankSoalHandler) CreateSimulation(w http.ResponseWriter, r *http.Reques
 
 	simulation, err := h.bankSoalUsecase.CreateSimulation(r.Context(), req)
 	if err != nil {
-		http.Error(w, `{"error":"Bad request"}`, http.StatusBadRequest)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -141,7 +141,7 @@ func (h *BankSoalHandler) GetSimulations(w http.ResponseWriter, r *http.Request)
 
 	simulations, err := h.bankSoalUsecase.GetSimulations(r.Context(), courseID)
 	if err != nil {
-		http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
 
@@ -159,7 +159,7 @@ func (h *BankSoalHandler) GetSimulationByID(w http.ResponseWriter, r *http.Reque
 
 	simulation, err := h.bankSoalUsecase.GetSimulationByID(r.Context(), id)
 	if err != nil {
-		http.Error(w, `{"error":"Resource not found"}`, http.StatusNotFound)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusNotFound)
 		return
 	}
 
@@ -183,7 +183,7 @@ func (h *BankSoalHandler) UpdateSimulation(w http.ResponseWriter, r *http.Reques
 
 	simulation, err := h.bankSoalUsecase.UpdateSimulation(r.Context(), id, req)
 	if err != nil {
-		http.Error(w, `{"error":"Bad request"}`, http.StatusBadRequest)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -200,7 +200,7 @@ func (h *BankSoalHandler) DeleteSimulation(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.bankSoalUsecase.DeleteSimulation(r.Context(), id); err != nil {
-		http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
 
@@ -217,7 +217,7 @@ func (h *BankSoalHandler) CreateQuestion(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.bankSoalUsecase.CreateQuestion(r.Context(), &question); err != nil {
-		http.Error(w, `{"error":"Bad request"}`, http.StatusBadRequest)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -236,7 +236,7 @@ func (h *BankSoalHandler) GetQuestionsBySimulation(w http.ResponseWriter, r *htt
 
 	questions, err := h.bankSoalUsecase.GetQuestionsBySimulation(r.Context(), simulationID)
 	if err != nil {
-		http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
 
@@ -260,7 +260,7 @@ func (h *BankSoalHandler) UpdateQuestion(w http.ResponseWriter, r *http.Request)
 	question.ID = id
 
 	if err := h.bankSoalUsecase.UpdateQuestion(r.Context(), &question); err != nil {
-		http.Error(w, `{"error":"Bad request"}`, http.StatusBadRequest)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -277,7 +277,7 @@ func (h *BankSoalHandler) DeleteQuestion(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.bankSoalUsecase.DeleteQuestion(r.Context(), id); err != nil {
-		http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
 

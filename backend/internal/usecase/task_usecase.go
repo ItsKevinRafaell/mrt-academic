@@ -22,7 +22,8 @@ func (uc *TaskUseCase) CreateTask(task *domain.Task) error {
 }
 
 func (uc *TaskUseCase) GetTasksByCourse(courseID int) ([]domain.Task, error) {
-	return uc.taskRepo.GetByCourseID(courseID)
+	tasks, _, err := uc.taskRepo.GetByCourseID(courseID, 1, 10000)
+	return tasks, err
 }
 
 func (uc *TaskUseCase) GetTaskByID(id int) (*domain.Task, error) {
@@ -103,7 +104,7 @@ func (uc *TaskUseCase) GetTaskProgressSummary(taskID int) (*domain.TaskMonitorin
 }
 
 func (uc *TaskUseCase) GetCourseProgressSummary(courseID int) ([]domain.TaskMonitoringSummary, error) {
-	tasks, err := uc.taskRepo.GetByCourseID(courseID)
+	tasks, _, err := uc.taskRepo.GetByCourseID(courseID, 1, 10000)
 	if err != nil {
 		return nil, err
 	}

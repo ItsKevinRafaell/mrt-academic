@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-// NullInt64 is a custom type that serializes to JSON as null or number
 type NullInt64 struct {
 	sql.NullInt64
 }
@@ -24,7 +23,7 @@ type Course struct {
 	Name        string         `json:"name"`
 	SKS         int            `json:"sks"`
 	Description string         `json:"description"`
-	CourseType  string         `json:"course_type"` // lecturer or lab
+	CourseType  string         `json:"course_type"`
 	CawuID      NullInt64      `json:"cawu_id"`
 	Instructors []string       `json:"instructors"`
 	CreatedAt   time.Time      `json:"created_at"`
@@ -33,7 +32,7 @@ type Course struct {
 
 type CourseRepository interface {
 	Create(course *Course) error
-	GetAll() ([]Course, error)
+	GetAll(page, limit int) ([]Course, int, error)
 	GetByID(id int) (*Course, error)
 	Update(course *Course) error
 	Delete(id int) error

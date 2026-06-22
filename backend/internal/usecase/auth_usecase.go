@@ -4,14 +4,11 @@ import (
 	"context"
 	"errors"
 	"mrt-backend/internal/domain"
-	"regexp"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
-
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
 type AuthUsecase struct {
 	userRepo     domain.UserRepository
@@ -49,23 +46,13 @@ type LoginResponse struct {
 	Role  string
 }
 
-type RegisterResponse struct {
-	User    *domain.User
-	Warning string
-}
-
-func (uc *AuthUsecase) Register(ctx context.Context, req RegisterRequest) (*RegisterResponse, error) {
+func (uc *AuthUsecase) Register(ctx context.Context, req RegisterRequest) (*domain.User, error) {
 	if req.NIM == "" || req.FullName == "" || req.Email == "" || req.Password == "" {
 		return nil, domain.ErrValidation
 	}
 
-	if !emailRegex.MatchString(req.Email) {
-		return nil, errors.New("invalid email format")
-	}
-
-	var warning string
 	if len(req.Password) < 8 {
-		warning = "Password should be at least 8 characters for better security"
+		return nil, errors.New("password must be at least 8 characters")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -92,10 +79,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, req RegisterRequest) (*Regi
 		return nil, err
 	}
 
-	return &RegisterResponse{
-		User:    user,
-		Warning: warning,
-	}, nil
+	return user, nil
 }
 
 func (uc *AuthUsecase) Login(ctx context.Context, req LoginRequest) (*LoginResponse, error) {

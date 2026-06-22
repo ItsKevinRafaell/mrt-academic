@@ -28,12 +28,15 @@ type CourseRequest struct {
 }
 
 func (h *CourseHandler) List(w http.ResponseWriter, r *http.Request) {
-	courses, err := h.courseUsecase.GetAll(r.Context())
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+
+	courses, pagination, err := h.courseUsecase.GetAll(r.Context(), page, limit)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-	Success(w, http.StatusOK, "Courses retrieved", courses)
+	SuccessWithMeta(w, http.StatusOK, "Courses retrieved", courses, pagination)
 }
 
 func (h *CourseHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -141,12 +144,15 @@ func (h *CourseHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessions, err := h.courseUsecase.GetSessions(r.Context(), courseID)
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+
+	sessions, pagination, err := h.courseUsecase.GetSessions(r.Context(), courseID, page, limit)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-	Success(w, http.StatusOK, "Sessions retrieved", sessions)
+	SuccessWithMeta(w, http.StatusOK, "Sessions retrieved", sessions, pagination)
 }
 
 func (h *CourseHandler) GetSessionByID(w http.ResponseWriter, r *http.Request) {
@@ -353,12 +359,15 @@ func (h *CourseHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tasks, err := h.courseUsecase.GetTasks(r.Context(), courseID)
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+
+	tasks, pagination, err := h.courseUsecase.GetTasks(r.Context(), courseID, page, limit)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-	Success(w, http.StatusOK, "Tasks retrieved", tasks)
+	SuccessWithMeta(w, http.StatusOK, "Tasks retrieved", tasks, pagination)
 }
 
 func (h *CourseHandler) CreateTask(w http.ResponseWriter, r *http.Request) {

@@ -24,13 +24,20 @@ func (r *TaskRepo) Create(task *domain.Task) error {
 		Scan(&task.ID, &task.CreatedAt, &task.UpdatedAt)
 }
 
-func (r *TaskRepo) GetByCourseID(courseID int) ([]domain.Task, error) {
-	query := `SELECT id, course_id, title, description, deadline, created_at, updated_at
-		FROM tasks WHERE course_id = $1 ORDER BY deadline`
+func (r *TaskRepo) GetByCourseID(courseID int, page, limit int) ([]domain.Task, int, error) {
+	var total int
+	countQuery := `SELECT COUNT(*) FROM tasks WHERE course_id = $1`
+	if err := r.db.QueryRow(countQuery, courseID).Scan(&total); err != nil {
+		return nil, 0, err
+	}
 
-	rows, err := r.db.Query(query, courseID)
+	offset := (page - 1) * limit
+	query := `SELECT id, course_id, title, description, deadline, created_at, updated_at
+		FROM tasks WHERE course_id = $1 ORDER BY deadline LIMIT $2 OFFSET $3`
+
+	rows, err := r.db.Query(query, courseID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -39,11 +46,11 @@ func (r *TaskRepo) GetByCourseID(courseID int) ([]domain.Task, error) {
 		var t domain.Task
 		if err := rows.Scan(&t.ID, &t.CourseID, &t.Title, &t.Description,
 			&t.Deadline, &t.CreatedAt, &t.UpdatedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		tasks = append(tasks, t)
 	}
-	return tasks, rows.Err()
+	return tasks, total, rows.Err()
 }
 
 func (r *TaskRepo) GetByID(id int) (*domain.Task, error) {
@@ -95,9 +102,7 @@ func (r *TaskRepo) UpdateProgress(p *domain.TaskProgress) error {
 }
 
 func (r *TaskRepo) GetProgressByUserID(userID string) ([]domain.TaskProgress, error) {
-	query := `SELECT user_id, task_id, completed, completed_at
-		FROM task_progress WHERE user_id = $1`
-
+	query := `SELECT user_id, task_id, completed, completed_at FROM task_progress WHERE user_id = $1`
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
 		return nil, err
@@ -116,9 +121,7 @@ func (r *TaskRepo) GetProgressByUserID(userID string) ([]domain.TaskProgress, er
 }
 
 func (r *TaskRepo) GetProgressByTaskID(taskID int) ([]domain.TaskProgress, error) {
-	query := `SELECT user_id, task_id, completed, completed_at
-		FROM task_progress WHERE task_id = $1`
-
+	query := `SELECT user_id, task_id, completed, completed_at FROM task_progress WHERE task_id = $1`
 	rows, err := r.db.Query(query, taskID)
 	if err != nil {
 		return nil, err
@@ -137,15 +140,9 @@ func (r *TaskRepo) GetProgressByTaskID(taskID int) ([]domain.TaskProgress, error
 }
 
 func (r *TaskRepo) GetProgressWithUsersByTaskID(taskID int) ([]domain.TaskProgressWithUser, error) {
-	query := `
-		SELECT tp.user_id, tp.task_id, tp.completed, tp.completed_at,
-			   u.full_name as user_name, u.email as user_email
-		FROM task_progress tp
-		JOIN users u ON tp.user_id = u.id
-		WHERE tp.task_id = $1
-		ORDER BY tp.completed DESC, tp.completed_at DESC
-	`
-
+	query := `SELECT tp.user_id, tp.task_id, tp.completed, tp.completed_at, u.full_name, u.email
+		FROM task_progress tp JOIN users u ON tp.user_id = u.id WHERE tp.task_id = $1
+		ORDER BY tp.completed DESC, tp.completed_at DESC`
 	rows, err := r.db.Query(query, taskID)
 	if err != nil {
 		return nil, err
@@ -165,31 +162,24 @@ func (r *TaskRepo) GetProgressWithUsersByTaskID(taskID int) ([]domain.TaskProgre
 
 func (r *TaskRepo) GetTotalUserCount() (int, error) {
 	var count int
-	query := `SELECT COUNT(*) FROM users`
-	err := r.db.QueryRow(query).Scan(&count)
+	err := r.db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&count)
 	return count, err
 }
 
 func (r *TaskRepo) GetTaskDetail(taskID int) (*domain.TaskDetailResponse, error) {
-	// Get task details
 	task, err := r.GetByID(taskID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get total students
 	totalStudents, err := r.GetTotalUserCount()
 	if err != nil {
 		return nil, err
 	}
 
-	// Get all students with progress
-	query := `
-		SELECT u.id, u.full_name, u.email, COALESCE(tp.completed, false), tp.completed_at
-		FROM users u
-		LEFT JOIN task_progress tp ON u.id = tp.user_id AND tp.task_id = $1
-		ORDER BY tp.completed DESC, u.full_name
-	`
+	query := `SELECT u.id, u.full_name, u.email, COALESCE(tp.completed, false), tp.completed_at
+		FROM users u LEFT JOIN task_progress tp ON u.id = tp.user_id AND tp.task_id = $1
+		ORDER BY tp.completed DESC, u.full_name`
 
 	rows, err := r.db.Query(query, taskID)
 	if err != nil {
@@ -197,38 +187,23 @@ func (r *TaskRepo) GetTaskDetail(taskID int) (*domain.TaskDetailResponse, error)
 	}
 	defer rows.Close()
 
-	var completedStudents []domain.TaskProgressWithUser
-	var pendingStudents []domain.TaskProgressWithUser
-
+	var completedStudents, pendingStudents []domain.TaskProgressWithUser
 	for rows.Next() {
 		var userID, userName, userEmail string
 		var completed bool
 		var completedAt *time.Time
-
 		if err := rows.Scan(&userID, &userName, &userEmail, &completed, &completedAt); err != nil {
 			return nil, err
 		}
-
 		student := domain.TaskProgressWithUser{
-			TaskProgress: domain.TaskProgress{
-				UserID:      userID,
-				TaskID:      taskID,
-				Completed:   completed,
-				CompletedAt: completedAt,
-			},
-			UserName:  userName,
-			UserEmail: userEmail,
+			TaskProgress: domain.TaskProgress{UserID: userID, TaskID: taskID, Completed: completed, CompletedAt: completedAt},
+			UserName: userName, UserEmail: userEmail,
 		}
-
 		if completed {
 			completedStudents = append(completedStudents, student)
 		} else {
 			pendingStudents = append(pendingStudents, student)
 		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 
 	completionRate := float64(0)
@@ -237,10 +212,8 @@ func (r *TaskRepo) GetTaskDetail(taskID int) (*domain.TaskDetailResponse, error)
 	}
 
 	return &domain.TaskDetailResponse{
-		Task:              *task,
-		TotalStudents:     totalStudents,
-		CompletedStudents: completedStudents,
-		PendingStudents:   pendingStudents,
-		CompletionRate:    completionRate,
+		Task: *task, TotalStudents: totalStudents,
+		CompletedStudents: completedStudents, PendingStudents: pendingStudents,
+		CompletionRate: completionRate,
 	}, nil
 }

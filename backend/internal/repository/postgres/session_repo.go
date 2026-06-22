@@ -31,13 +31,20 @@ func (r *SessionRepo) Create(session *domain.Session) error {
 	return err
 }
 
-func (r *SessionRepo) GetByCourseID(courseID int) ([]domain.Session, error) {
-	query := `SELECT id, course_id, number, title, description, created_at, updated_at
-		FROM sessions WHERE course_id = $1 ORDER BY number`
+func (r *SessionRepo) GetByCourseID(courseID int, page, limit int) ([]domain.Session, int, error) {
+	var total int
+	countQuery := `SELECT COUNT(*) FROM sessions WHERE course_id = $1`
+	if err := r.db.QueryRow(countQuery, courseID).Scan(&total); err != nil {
+		return nil, 0, err
+	}
 
-	rows, err := r.db.Query(query, courseID)
+	offset := (page - 1) * limit
+	query := `SELECT id, course_id, number, title, description, created_at, updated_at
+		FROM sessions WHERE course_id = $1 ORDER BY number LIMIT $2 OFFSET $3`
+
+	rows, err := r.db.Query(query, courseID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -46,11 +53,11 @@ func (r *SessionRepo) GetByCourseID(courseID int) ([]domain.Session, error) {
 		var s domain.Session
 		if err := rows.Scan(&s.ID, &s.CourseID, &s.Number, &s.Title,
 			&s.Description, &s.CreatedAt, &s.UpdatedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		sessions = append(sessions, s)
 	}
-	return sessions, rows.Err()
+	return sessions, total, rows.Err()
 }
 
 func (r *SessionRepo) GetByID(id int) (*domain.Session, error) {

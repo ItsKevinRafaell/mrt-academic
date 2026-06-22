@@ -125,7 +125,7 @@ func (uc *ExcelUsecase) ExportGrades(userID string, cawu int) ([]byte, error) {
 }
 
 func (uc *ExcelUsecase) ExportCourses() ([]byte, error) {
-	courses, err := uc.courseRepo.GetAll()
+	courses, _, err := uc.courseRepo.GetAll(1, 10000)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func (uc *ExcelUsecase) ExportCourses() ([]byte, error) {
 		f.SetCellValue(courseSheet, fmt.Sprintf("E%d", courseRow), course.Description)
 		f.SetCellValue(courseSheet, fmt.Sprintf("F%d", courseRow), strings.Join(course.Instructors, ";"))
 
-		sessions, err := uc.sessionRepo.GetByCourseID(course.ID)
+		sessions, _, err := uc.sessionRepo.GetByCourseID(course.ID, 1, 10000)
 		if err != nil {
 			return nil, err
 		}
@@ -320,7 +320,7 @@ func (uc *ExcelUsecase) ImportCourses(reader io.Reader) (*ImportResult, error) {
 			Instructors: instructors,
 		}
 
-		existingCourses, err := uc.courseRepo.GetAll()
+		existingCourses, _, err := uc.courseRepo.GetAll(1, 10000)
 		if err != nil {
 			return nil, err
 		}
@@ -419,7 +419,7 @@ func (uc *ExcelUsecase) ImportCourses(reader io.Reader) (*ImportResult, error) {
 				return nil, fmt.Errorf("invalid session number in row %d: %s", i+1, sessionNumberStr)
 			}
 
-			sessions, err := uc.sessionRepo.GetByCourseID(courseID)
+			sessions, _, err := uc.sessionRepo.GetByCourseID(courseID, 1, 10000)
 			if err != nil {
 				return nil, err
 			}
@@ -504,7 +504,7 @@ func (uc *ExcelUsecase) PreviewImport(reader io.Reader) (*ImportPreview, error) 
 	sessionSheet := "Sessions"
 	materialSheet := "Materials"
 
-	existingCourses, err := uc.courseRepo.GetAll()
+	existingCourses, _, err := uc.courseRepo.GetAll(1, 10000)
 	if err != nil {
 		return nil, err
 	}

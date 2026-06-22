@@ -78,7 +78,6 @@ func (m *mockMaterialRepo) GetBySessionID(sessionID int) ([]domain.Material, err
 	return nil, nil
 }
 func (m *mockMaterialRepo) GetByID(id int) (*domain.Material, error) { return nil, nil }
-func (m *mockMaterialRepo) GetByIDWithCourse(id int) (*domain.Material, *domain.Course, error) { return nil, nil, nil }
 func (m *mockMaterialRepo) Update(mat *domain.Material) error        { return nil }
 func (m *mockMaterialRepo) Delete(id int) error                      { return nil }
 
@@ -106,7 +105,7 @@ func (m *mockTaskRepo) GetTaskDetail(taskID int) (*domain.TaskDetailResponse, er
 
 func TestCourseUsecase_Create_Success(t *testing.T) {
 	mockRepo := &mockCourseRepo{courses: make(map[int]*domain.Course)}
-	uc := NewCourseUsecase(mockRepo, &mockSessionRepo{}, &mockMaterialRepo{}, &mockTaskRepo{}, nil)
+	uc := NewCourseUsecase(mockRepo, &mockSessionRepo{}, &mockMaterialRepo{}, &mockTaskRepo{})
 
 	course := &domain.Course{
 		Code: "CS101",
@@ -129,7 +128,7 @@ func TestCourseUsecase_Create_Success(t *testing.T) {
 
 func TestCourseUsecase_Create_ValidationError(t *testing.T) {
 	mockRepo := &mockCourseRepo{courses: make(map[int]*domain.Course)}
-	uc := NewCourseUsecase(mockRepo, &mockSessionRepo{}, &mockMaterialRepo{}, &mockTaskRepo{}, nil)
+	uc := NewCourseUsecase(mockRepo, &mockSessionRepo{}, &mockMaterialRepo{}, &mockTaskRepo{})
 
 	tests := []struct {
 		name   string
@@ -152,7 +151,7 @@ func TestCourseUsecase_Create_ValidationError(t *testing.T) {
 
 func TestCourseUsecase_GetAll_Success(t *testing.T) {
 	mockRepo := &mockCourseRepo{courses: make(map[int]*domain.Course)}
-	uc := NewCourseUsecase(mockRepo, &mockSessionRepo{}, &mockMaterialRepo{}, &mockTaskRepo{}, nil)
+	uc := NewCourseUsecase(mockRepo, &mockSessionRepo{}, &mockMaterialRepo{}, &mockTaskRepo{})
 
 	uc.Create(context.Background(), &domain.Course{Code: "CS101", Name: "Struktur Data", SKS: 3})
 	uc.Create(context.Background(), &domain.Course{Code: "CS102", Name: "Algoritma", SKS: 3})
@@ -169,7 +168,7 @@ func TestCourseUsecase_GetAll_Success(t *testing.T) {
 
 func TestCourseUsecase_GetByID_Success(t *testing.T) {
 	mockRepo := &mockCourseRepo{courses: make(map[int]*domain.Course)}
-	uc := NewCourseUsecase(mockRepo, &mockSessionRepo{}, &mockMaterialRepo{}, &mockTaskRepo{}, nil)
+	uc := NewCourseUsecase(mockRepo, &mockSessionRepo{}, &mockMaterialRepo{}, &mockTaskRepo{})
 
 	created := &domain.Course{Code: "CS101", Name: "Struktur Data", SKS: 3}
 	uc.Create(context.Background(), created)
@@ -186,7 +185,7 @@ func TestCourseUsecase_GetByID_Success(t *testing.T) {
 
 func TestCourseUsecase_Delete_Success(t *testing.T) {
 	mockRepo := &mockCourseRepo{courses: make(map[int]*domain.Course)}
-	uc := NewCourseUsecase(mockRepo, &mockSessionRepo{}, &mockMaterialRepo{}, &mockTaskRepo{}, nil)
+	uc := NewCourseUsecase(mockRepo, &mockSessionRepo{}, &mockMaterialRepo{}, &mockTaskRepo{})
 
 	created := &domain.Course{Code: "CS101", Name: "Struktur Data", SKS: 3}
 	uc.Create(context.Background(), created)

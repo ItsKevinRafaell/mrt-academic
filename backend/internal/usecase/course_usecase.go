@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"log"
 	"mrt-backend/internal/domain"
 )
 
@@ -11,7 +10,6 @@ type CourseUsecase struct {
 	sessionRepo  domain.SessionRepository
 	materialRepo domain.MaterialRepository
 	taskRepo     domain.TaskRepository
-	searchUC     *SearchUsecase
 }
 
 func NewCourseUsecase(
@@ -19,22 +17,12 @@ func NewCourseUsecase(
 	sessionRepo domain.SessionRepository,
 	materialRepo domain.MaterialRepository,
 	taskRepo domain.TaskRepository,
-	searchUC *SearchUsecase,
 ) *CourseUsecase {
 	return &CourseUsecase{
 		courseRepo:   courseRepo,
 		sessionRepo:  sessionRepo,
 		materialRepo: materialRepo,
 		taskRepo:     taskRepo,
-		searchUC:     searchUC,
-	}
-}
-
-func (uc *CourseUsecase) invalidateCache() {
-	if uc.searchUC != nil {
-		if err := uc.searchUC.InvalidateCache(); err != nil {
-			log.Printf("search cache invalidation failed: %v", err)
-		}
 	}
 }
 
@@ -42,15 +30,21 @@ func (uc *CourseUsecase) Create(ctx context.Context, c *domain.Course) error {
 	if c.Code == "" || c.Name == "" || c.SKS <= 0 {
 		return domain.ErrValidation
 	}
-	if err := uc.courseRepo.Create(c); err != nil {
-		return err
-	}
-	uc.invalidateCache()
-	return nil
+	return uc.courseRepo.Create(c)
 }
 
-func (uc *CourseUsecase) GetAll(ctx context.Context) ([]domain.Course, error) {
-	return uc.courseRepo.GetAll()
+func (uc *CourseUsecase) GetAll(ctx context.Context, page, limit int) ([]domain.Course, domain.Pagination, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	courses, total, err := uc.courseRepo.GetAll(page, limit)
+	if err != nil {
+		return nil, domain.Pagination{}, err
+	}
+	return courses, domain.Pagination{Page: page, PerPage: limit, Total: total}, nil
 }
 
 func (uc *CourseUsecase) GetByID(ctx context.Context, id int) (*domain.Course, error) {
@@ -61,19 +55,11 @@ func (uc *CourseUsecase) Update(ctx context.Context, c *domain.Course) error {
 	if c.Code == "" || c.Name == "" || c.SKS <= 0 {
 		return domain.ErrValidation
 	}
-	if err := uc.courseRepo.Update(c); err != nil {
-		return err
-	}
-	uc.invalidateCache()
-	return nil
+	return uc.courseRepo.Update(c)
 }
 
 func (uc *CourseUsecase) Delete(ctx context.Context, id int) error {
-	if err := uc.courseRepo.Delete(id); err != nil {
-		return err
-	}
-	uc.invalidateCache()
-	return nil
+	return uc.courseRepo.Delete(id)
 }
 
 func (uc *CourseUsecase) CreateSession(ctx context.Context, s *domain.Session) error {
@@ -83,18 +69,24 @@ func (uc *CourseUsecase) CreateSession(ctx context.Context, s *domain.Session) e
 	if _, err := uc.courseRepo.GetByID(s.CourseID); err != nil {
 		return err
 	}
-	if err := uc.sessionRepo.Create(s); err != nil {
-		return err
-	}
-	uc.invalidateCache()
-	return nil
+	return uc.sessionRepo.Create(s)
 }
 
-func (uc *CourseUsecase) GetSessions(ctx context.Context, courseID int) ([]domain.Session, error) {
+func (uc *CourseUsecase) GetSessions(ctx context.Context, courseID int, page, limit int) ([]domain.Session, domain.Pagination, error) {
 	if _, err := uc.courseRepo.GetByID(courseID); err != nil {
-		return nil, err
+		return nil, domain.Pagination{}, err
 	}
-	return uc.sessionRepo.GetByCourseID(courseID)
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	sessions, total, err := uc.sessionRepo.GetByCourseID(courseID, page, limit)
+	if err != nil {
+		return nil, domain.Pagination{}, err
+	}
+	return sessions, domain.Pagination{Page: page, PerPage: limit, Total: total}, nil
 }
 
 func (uc *CourseUsecase) GetSessionByID(ctx context.Context, id int) (*domain.Session, error) {
@@ -105,19 +97,11 @@ func (uc *CourseUsecase) UpdateSession(ctx context.Context, s *domain.Session) e
 	if s.Title == "" || s.Number <= 0 {
 		return domain.ErrValidation
 	}
-	if err := uc.sessionRepo.Update(s); err != nil {
-		return err
-	}
-	uc.invalidateCache()
-	return nil
+	return uc.sessionRepo.Update(s)
 }
 
 func (uc *CourseUsecase) DeleteSession(ctx context.Context, id int) error {
-	if err := uc.sessionRepo.Delete(id); err != nil {
-		return err
-	}
-	uc.invalidateCache()
-	return nil
+	return uc.sessionRepo.Delete(id)
 }
 
 func (uc *CourseUsecase) GetMaterialsByCourse(ctx context.Context, courseID int) ([]domain.SessionWithMaterials, error) {
@@ -140,7 +124,6 @@ func (uc *CourseUsecase) CreateMaterial(ctx context.Context, m *domain.Material)
 			return err
 		}
 	} else if m.TopicID != nil {
-		// Validasi topic exists (akan diimplementasi setelah topic repo siap)
 	} else {
 		return domain.ErrValidation
 	}
@@ -165,37 +148,35 @@ func (uc *CourseUsecase) CreateTask(ctx context.Context, t *domain.Task) error {
 	if _, err := uc.courseRepo.GetByID(t.CourseID); err != nil {
 		return err
 	}
-	if err := uc.taskRepo.Create(t); err != nil {
-		return err
-	}
-	uc.invalidateCache()
-	return nil
+	return uc.taskRepo.Create(t)
 }
 
-func (uc *CourseUsecase) GetTasks(ctx context.Context, courseID int) ([]domain.Task, error) {
+func (uc *CourseUsecase) GetTasks(ctx context.Context, courseID int, page, limit int) ([]domain.Task, domain.Pagination, error) {
 	if _, err := uc.courseRepo.GetByID(courseID); err != nil {
-		return nil, err
+		return nil, domain.Pagination{}, err
 	}
-	return uc.taskRepo.GetByCourseID(courseID)
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	tasks, total, err := uc.taskRepo.GetByCourseID(courseID, page, limit)
+	if err != nil {
+		return nil, domain.Pagination{}, err
+	}
+	return tasks, domain.Pagination{Page: page, PerPage: limit, Total: total}, nil
 }
 
 func (uc *CourseUsecase) UpdateTask(ctx context.Context, t *domain.Task) error {
 	if t.Title == "" || t.Deadline.IsZero() {
 		return domain.ErrValidation
 	}
-	if err := uc.taskRepo.Update(t); err != nil {
-		return err
-	}
-	uc.invalidateCache()
-	return nil
+	return uc.taskRepo.Update(t)
 }
 
 func (uc *CourseUsecase) DeleteTask(ctx context.Context, id int) error {
-	if err := uc.taskRepo.Delete(id); err != nil {
-		return err
-	}
-	uc.invalidateCache()
-	return nil
+	return uc.taskRepo.Delete(id)
 }
 
 func (uc *CourseUsecase) UpdateTaskProgress(ctx context.Context, p *domain.TaskProgress) error {

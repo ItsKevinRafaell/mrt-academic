@@ -6,9 +6,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-primary">MRT Academic</CardTitle>
+      <Card className="w-full max-w-md shadow-2xl border-2 border-primary/20">
+        <CardHeader className="space-y-3 text-center pb-8">
+          <div className="mx-auto w-16 h-16 rounded-full bg-primary flex items-center justify-center mb-4">
+            <span className="text-3xl font-bold text-primary-foreground">M</span>
+          </div>
+          <CardTitle className="text-3xl font-bold text-primary">MRT Academic</CardTitle>
           <CardDescription>Pendaftaran akun baru</CardDescription>
         </CardHeader>
         <CardContent>

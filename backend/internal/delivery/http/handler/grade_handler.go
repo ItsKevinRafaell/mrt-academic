@@ -47,7 +47,7 @@ func (h *GradeHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	err := h.gradeUsecase.CreateGrade(userID, req.CourseID, req.Grade)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "create_failed", "Failed to create grade")
+		respondError(w, http.StatusInternalServerError, "create_failed", err.Error())
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *GradeHandler) GetUserGrades(w http.ResponseWriter, r *http.Request) {
 
 	grades, err := h.gradeUsecase.GetUserGrades(userID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch grades")
+		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
 		return
 	}
 
@@ -79,7 +79,7 @@ func (h *GradeHandler) CalculateGPA(w http.ResponseWriter, r *http.Request) {
 
 	summary, err := h.gradeUsecase.CalculateGPA(userID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "calculation_failed", "Failed to calculate GPA")
+		respondError(w, http.StatusInternalServerError, "calculation_failed", err.Error())
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *GradeHandler) GetGradesForCourse(w http.ResponseWriter, r *http.Request
 
 	components, err := h.gradeUsecase.GetGradesForCourse(userID, courseID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch grades")
+		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h *GradeHandler) GetIPKData(w http.ResponseWriter, r *http.Request) {
 
 	allData, err := h.gradeUsecase.GetIPKData(userID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch grades")
+		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
 		return
 	}
 
@@ -176,13 +176,13 @@ func (h *GradeHandler) UpdateGrade(w http.ResponseWriter, r *http.Request) {
 
 	err := h.gradeUsecase.CreateGrade(userID, req.CourseID, *req.Grade)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "update_failed", "Failed to update grade")
+		respondError(w, http.StatusInternalServerError, "update_failed", err.Error())
 		return
 	}
 
 	ipkData, err := h.gradeUsecase.GetIPKData(userID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch grades")
+		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
 		return
 	}
 
@@ -220,7 +220,7 @@ func (h *GradeHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	err = h.gradeUsecase.CreateGrade(userID, courseID, req.Grade)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "update_failed", "Failed to update grade")
+		respondError(w, http.StatusInternalServerError, "update_failed", err.Error())
 		return
 	}
 
@@ -282,7 +282,7 @@ func (h *GradeHandler) BulkCreate(w http.ResponseWriter, r *http.Request) {
 
 	err = h.gradeUsecase.CreateBulkGrades(userID, courseID, grades)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "create_failed", "Failed to create grade")
+		respondError(w, http.StatusInternalServerError, "create_failed", err.Error())
 		return
 	}
 

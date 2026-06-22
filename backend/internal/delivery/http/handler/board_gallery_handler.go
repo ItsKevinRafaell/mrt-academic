@@ -51,7 +51,7 @@ func (h *BoardGalleryHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.boardGalleryUsecase.CreateItem(context.Background(), item); err != nil {
-		respondError(w, http.StatusInternalServerError, "create_failed", "Failed to create gallery item")
+		respondError(w, http.StatusInternalServerError, "create_failed", "Failed to create item")
 		return
 	}
 
@@ -68,7 +68,7 @@ func (h *BoardGalleryHandler) GetBySessionID(w http.ResponseWriter, r *http.Requ
 
 	items, err := h.boardGalleryUsecase.GetBySessionID(context.Background(), sessionID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch gallery items")
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch items")
 		return
 	}
 
@@ -85,7 +85,7 @@ func (h *BoardGalleryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	item, err := h.boardGalleryUsecase.GetByID(context.Background(), id)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch gallery item")
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch items")
 		return
 	}
 
@@ -120,7 +120,7 @@ func (h *BoardGalleryHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.boardGalleryUsecase.UpdateItem(context.Background(), item); err != nil {
-		respondError(w, http.StatusInternalServerError, "update_failed", "Failed to update gallery item")
+		respondError(w, http.StatusInternalServerError, "update_failed", "Failed to update item")
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *BoardGalleryHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.boardGalleryUsecase.DeleteItem(context.Background(), id); err != nil {
-		respondError(w, http.StatusInternalServerError, "delete_failed", "Failed to delete gallery item")
+		respondError(w, http.StatusInternalServerError, "delete_failed", "Failed to delete item")
 		return
 	}
 
@@ -160,7 +160,7 @@ func (h *BoardGalleryHandler) ReorderItems(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.boardGalleryUsecase.ReorderItems(context.Background(), id, req.OrderNumber); err != nil {
-		respondError(w, http.StatusInternalServerError, "reorder_failed", "Failed to reorder gallery items")
+		respondError(w, http.StatusInternalServerError, "reorder_failed", "Failed to reorder items")
 		return
 	}
 

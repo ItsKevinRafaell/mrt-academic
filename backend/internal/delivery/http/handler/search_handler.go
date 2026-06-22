@@ -1,31 +1,16 @@
 package handler
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
-	"mrt-backend/internal/domain"
+	"mrt-backend/internal/usecase"
 	"net/http"
 )
 
-type SearchUsecaseInterface interface {
-	GetIndex() (*domain.SearchIndex, error)
-	Search(query string) (*domain.SearchIndex, error)
-	InvalidateCache() error
-}
-
 type SearchHandler struct {
-	searchUsecase SearchUsecaseInterface
+	searchUsecase *usecase.SearchUsecase
 }
 
-func NewSearchHandler(searchUsecase SearchUsecaseInterface) *SearchHandler {
+func NewSearchHandler(searchUsecase *usecase.SearchUsecase) *SearchHandler {
 	return &SearchHandler{searchUsecase: searchUsecase}
-}
-
-func computeETag(data interface{}) string {
-	jsonBytes, _ := json.Marshal(data)
-	hash := sha256.Sum256(jsonBytes)
-	return `"` + hex.EncodeToString(hash[:8]) + `"`
 }
 
 func (h *SearchHandler) GetIndex(w http.ResponseWriter, r *http.Request) {
@@ -35,13 +20,6 @@ func (h *SearchHandler) GetIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	etag := computeETag(index)
-	if r.Header.Get("If-None-Match") == etag {
-		w.WriteHeader(http.StatusNotModified)
-		return
-	}
-
-	w.Header().Set("ETag", etag)
 	respondJSON(w, http.StatusOK, index)
 }
 

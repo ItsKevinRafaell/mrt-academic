@@ -18,7 +18,7 @@ func main() {
 	}
 	defer db.Close()
 
-	router := httpDelivery.NewRouter(db, cfg.JWTSecret)
+	router := httpDelivery.NewRouter(cfg, db)
 	router.Setup()
 
 	log.Printf("Server starting on %s", cfg.ServerAddr())

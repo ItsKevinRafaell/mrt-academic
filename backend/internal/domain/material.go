@@ -20,7 +20,6 @@ type MaterialRepository interface {
 	GetBySessionID(sessionID int) ([]Material, error)
 	GetByCourseID(courseID int) ([]SessionWithMaterials, error)
 	GetByID(id int) (*Material, error)
-	GetByIDWithCourse(id int) (*Material, *Course, error)
 	Update(material *Material) error
 	Delete(id int) error
 }

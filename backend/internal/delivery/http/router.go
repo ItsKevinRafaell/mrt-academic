@@ -2,6 +2,7 @@ package http
 
 import (
 	"database/sql"
+	"mrt-backend/internal/config"
 	"mrt-backend/internal/delivery/http/handler"
 	"mrt-backend/internal/delivery/http/middleware"
 	"mrt-backend/internal/domain"
@@ -9,7 +10,6 @@ import (
 	"mrt-backend/internal/usecase"
 	"net/http"
 	"os"
-	"time"
 )
 
 type Router struct {
@@ -24,7 +24,6 @@ type Router struct {
 	eventUsecase            *usecase.EventUsecase
 	dashboardUsecase        *usecase.DashboardUsecase
 	searchUsecase           *usecase.SearchUsecase
-	compressionMiddleware   *middleware.CompressionMiddleware
 	questionUsecase         domain.QuestionUseCase
 	topicUsecase            *usecase.TopicUseCase
 	excelUsecase            *usecase.ExcelUsecase
@@ -32,15 +31,15 @@ type Router struct {
 	scheduleUsecase         *usecase.ScheduleUsecase
 	calendarUsecase         *usecase.CalendarUsecase
 	boardGalleryUsecase     *usecase.BoardGalleryUsecase
-	bankSoalUsecase          *usecase.BankSoalUsecase
-	fonnteService            *usecase.FonnteService
-	materialRequestUsecase   *usecase.MaterialRequestUseCase
+	bankSoalUsecase         *usecase.BankSoalUsecase
+	fonnteService           *usecase.FonnteService
 	authMiddleware          *middleware.AuthMiddleware
 	corsMiddleware          *middleware.CORSMiddleware
+	compressionMiddleware   *middleware.CompressionMiddleware
 	rateLimiter             *middleware.RateLimiter
 }
 
-func NewRouter(db *sql.DB, jwtSecret string) *Router {
+func NewRouter(cfg *config.Config, db *sql.DB) *Router {
 	userRepo := postgres.NewUserRepo(db)
 	userRoleRepo := postgres.NewUserRoleRepo(db)
 	courseRepo := postgres.NewCourseRepo(db)
@@ -51,7 +50,7 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 	gradeComponentRepo := postgres.NewGradeComponentRepo(db)
 	eventRepo := postgres.NewEventRepo(db)
 	dashboardRepo := postgres.NewDashboardRepo(db)
-	searchRepo := postgres.NewSearchRepo(db)
+	searchRepo := postgres.NewSearchRepo(db, cfg.SearchCacheTTL)
 	questionRepo := postgres.NewQuestionRepo(db)
 	examSubmissionRepo := postgres.NewExamSubmissionRepo(db)
 	topicRepo := postgres.NewTopicRepository(db)
@@ -60,18 +59,16 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 	examArchiveRepo := postgres.NewExamArchiveRepository(db)
 	simulationRepo := postgres.NewSimulationRepository(db)
 	simulationQuestionRepo := postgres.NewSimulationQuestionRepository(db)
-	materialRequestRepo := postgres.NewMaterialRequestRepo(db)
-	sharedMaterialRepo := postgres.NewSharedMaterialRepo(db)
 
-	authUsecase := usecase.NewAuthUsecase(userRepo, userRoleRepo, jwtSecret)
+	authUsecase := usecase.NewAuthUsecase(userRepo, userRoleRepo, cfg.JWTSecret)
 	userUsecase := usecase.NewUserUseCase(userRepo, userRoleRepo)
-	searchUsecase := usecase.NewSearchUsecase(searchRepo, 5*time.Minute)
-	courseUsecase := usecase.NewCourseUsecase(courseRepo, sessionRepo, materialRepo, taskRepo, searchUsecase)
+	courseUsecase := usecase.NewCourseUsecase(courseRepo, sessionRepo, materialRepo, taskRepo)
 	taskUsecase := usecase.NewTaskUseCase(taskRepo)
 	gradeUsecase := usecase.NewGradeUsecase(gradeRepo)
 	gradeComponentUsecase := usecase.NewGradeComponentUsecase(gradeComponentRepo)
 	eventUsecase := usecase.NewEventUsecase(eventRepo)
 	dashboardUsecase := usecase.NewDashboardUsecase(dashboardRepo)
+	searchUsecase := usecase.NewSearchUsecase(searchRepo, cfg.SearchCacheTTL)
 	questionUsecase := usecase.NewQuestionUsecase(questionRepo, examSubmissionRepo)
 	topicUsecase := usecase.NewTopicUseCase(topicRepo, sessionRepo, materialRepo)
 	excelUsecase := usecase.NewExcelUsecase(courseRepo, sessionRepo, materialRepo, gradeUsecase)
@@ -85,34 +82,32 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 	bankSoalUsecase := usecase.NewBankSoalUsecase(examArchiveRepo, simulationRepo, simulationQuestionRepo)
 	fonnteToken := os.Getenv("FONNTE_TOKEN")
 	fonnteService := usecase.NewFonnteService(fonnteToken)
-	materialRequestUsecase := usecase.NewMaterialRequestUseCase(materialRequestRepo, sharedMaterialRepo, materialRepo)
 
 	return &Router{
-		mux:                   http.NewServeMux(),
-		db:                    db,
-		authUsecase:           authUsecase,
-		userUsecase:           userUsecase,
-		courseUsecase:         courseUsecase,
-		taskUsecase:           taskUsecase,
-		gradeUsecase:          gradeUsecase,
-		gradeComponentUsecase: gradeComponentUsecase,
-		eventUsecase:          eventUsecase,
-		dashboardUsecase:      dashboardUsecase,
-		searchUsecase:         searchUsecase,
-		questionUsecase:       questionUsecase,
-		topicUsecase:          topicUsecase,
-		excelUsecase:          excelUsecase,
-		cawuUsecase:           cawuUsecase,
-		scheduleUsecase:       scheduleUsecase,
-		calendarUsecase:       calendarUsecase,
-		boardGalleryUsecase:   boardGalleryUsecase,
-		bankSoalUsecase:        bankSoalUsecase,
-		fonnteService:          fonnteService,
-		materialRequestUsecase: materialRequestUsecase,
-		authMiddleware:         middleware.NewAuthMiddleware(authUsecase),
-		corsMiddleware:         middleware.NewCORSMiddleware(),
-		rateLimiter:            middleware.NewRateLimiter(),
-		compressionMiddleware:  middleware.NewCompressionMiddleware(),
+		mux:                     http.NewServeMux(),
+		db:                      db,
+		authUsecase:             authUsecase,
+		userUsecase:             userUsecase,
+		courseUsecase:           courseUsecase,
+		taskUsecase:             taskUsecase,
+		gradeUsecase:            gradeUsecase,
+		gradeComponentUsecase:   gradeComponentUsecase,
+		eventUsecase:            eventUsecase,
+		dashboardUsecase:        dashboardUsecase,
+		searchUsecase:           searchUsecase,
+		questionUsecase:         questionUsecase,
+		topicUsecase:            topicUsecase,
+		excelUsecase:            excelUsecase,
+		cawuUsecase:             cawuUsecase,
+		scheduleUsecase:         scheduleUsecase,
+		calendarUsecase:         calendarUsecase,
+		boardGalleryUsecase:     boardGalleryUsecase,
+		bankSoalUsecase:         bankSoalUsecase,
+		fonnteService:           fonnteService,
+		authMiddleware:          middleware.NewAuthMiddleware(authUsecase),
+		corsMiddleware:          middleware.NewCORSMiddleware(cfg.AllowedOrigins),
+		compressionMiddleware:   middleware.NewCompressionMiddleware(),
+		rateLimiter:             middleware.NewRateLimiter(),
 	}
 }
 
@@ -299,17 +294,11 @@ func (r *Router) Setup() {
 	notificationHandler := handler.NewNotificationHandler(r.fonnteService)
 	r.mux.Handle("POST /api/v1/notifications/send", auth(admin(http.HandlerFunc(notificationHandler.SendNotification))))
 	r.mux.Handle("POST /api/v1/notifications/task", auth(http.HandlerFunc(notificationHandler.SendTaskNotification)))
-
-	// Material Request routes (content sharing)
-	materialRequestHandler := handler.NewMaterialRequestHandler(r.materialRequestUsecase)
-	r.mux.Handle("POST /api/v1/material-requests", auth(http.HandlerFunc(materialRequestHandler.CreateRequest)))
-	r.mux.Handle("GET /api/v1/material-requests", auth(http.HandlerFunc(materialRequestHandler.ListRequests)))
-	r.mux.Handle("GET /api/v1/material-requests/{id}", auth(http.HandlerFunc(materialRequestHandler.GetRequest)))
-	r.mux.Handle("PATCH /api/v1/material-requests/{id}/review", auth(admin(http.HandlerFunc(materialRequestHandler.ReviewRequest))))
-	r.mux.Handle("GET /api/v1/courses/{courseId}/shared-materials", auth(http.HandlerFunc(materialRequestHandler.GetSharedMaterials)))
-	r.mux.Handle("GET /api/v1/material-requests/pending-count", auth(admin(http.HandlerFunc(materialRequestHandler.GetPendingCount))))
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.compressionMiddleware.Handle(r.rateLimiter.Handle(r.corsMiddleware.Handle(r.mux))).ServeHTTP(w, req)
+	handler := r.corsMiddleware.Handle(r.mux)
+	handler = r.rateLimiter.Handle(handler)
+	handler = r.compressionMiddleware.Handle(handler)
+	handler.ServeHTTP(w, req)
 }

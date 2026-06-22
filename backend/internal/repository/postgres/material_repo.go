@@ -15,11 +15,11 @@ func NewMaterialRepo(db *sql.DB) *MaterialRepo {
 }
 
 func (r *MaterialRepo) Create(m *domain.Material) error {
-	query := `INSERT INTO materials (session_id, title, description, type, url, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6)
+	query := `INSERT INTO materials (session_id, title, description, type, url)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, created_at, updated_at`
 
-	return r.db.QueryRow(query, m.SessionID, m.Title, m.Description, m.Type, m.URL, m.CreatedBy).
+	return r.db.QueryRow(query, m.SessionID, m.Title, m.Description, m.Type, m.URL).
 		Scan(&m.ID, &m.CreatedAt, &m.UpdatedAt)
 }
 
@@ -143,7 +143,7 @@ func (r *MaterialRepo) Delete(id int) error {
 }
 
 func (r *MaterialRepo) GetByIDWithCourse(id int) (*domain.Material, *domain.Course, error) {
-	query := `SELECT m.id, m.session_id, m.topic_id, m.title, m.description, m.type, m.url, m.created_by, m.created_at, m.updated_at,
+	query := `SELECT m.id, m.session_id, m.topic_id, m.title, m.description, m.type, m.url, m.created_at, m.updated_at,
 		c.id, c.code, c.name, c.sks, c.description, c.course_type, c.cawu_id, c.created_at, c.updated_at
 		FROM materials m
 		LEFT JOIN sessions s ON s.id = m.session_id
@@ -156,12 +156,11 @@ func (r *MaterialRepo) GetByIDWithCourse(id int) (*domain.Material, *domain.Cour
 	var sessionID, topicID, cawuID sql.NullInt64
 	var cCode, cName, cDesc, cType sql.NullString
 	var cSks sql.NullInt64
-	var cCreated, cUpdated sql.NullTime
-	var mCreatedBy sql.NullString
+	var cCreated, cUpdated, mCreated, mUpdated sql.NullTime
 
 	err := r.db.QueryRow(query, id).Scan(
 		&m.ID, &sessionID, &topicID, &m.Title, &m.Description,
-		&m.Type, &m.URL, &mCreatedBy, &m.CreatedAt, &m.UpdatedAt,
+		&m.Type, &m.URL, &mCreated, &mUpdated,
 		&c.ID, &cCode, &cName, &cSks, &cDesc, &cType, &cawuID, &cCreated, &cUpdated,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -179,9 +178,13 @@ func (r *MaterialRepo) GetByIDWithCourse(id int) (*domain.Material, *domain.Cour
 		tid := int(topicID.Int64)
 		m.TopicID = &tid
 	}
-	if mCreatedBy.Valid {
-		m.CreatedBy = &mCreatedBy.String
+	if mCreated.Valid {
+		m.CreatedAt = mCreated.Time
 	}
+	if mUpdated.Valid {
+		m.UpdatedAt = mUpdated.Time
+	}
+
 	if c.ID != 0 {
 		if cCode.Valid {
 			c.Code = cCode.String

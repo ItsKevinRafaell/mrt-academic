@@ -42,7 +42,7 @@ func (h *CawuHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *CawuHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	cawus, err := h.cawuUsecase.GetAllCawus()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch cawu")
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch cawus")
 		return
 	}
 	respondJSON(w, http.StatusOK, cawus)
@@ -67,7 +67,7 @@ func (h *CawuHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *CawuHandler) GetActive(w http.ResponseWriter, r *http.Request) {
 	cawu, err := h.cawuUsecase.GetActiveCawu()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch cawu")
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch cawus")
 		return
 	}
 	if cawu == nil {

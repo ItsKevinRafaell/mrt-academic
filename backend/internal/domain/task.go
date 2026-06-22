@@ -27,25 +27,25 @@ type TaskProgressWithUser struct {
 }
 
 type TaskMonitoringSummary struct {
-	TaskID              int                    `json:"task_id"`
-	TaskTitle           string                 `json:"task_title"`
-	TotalUsers          int                    `json:"total_users"`
-	CompletedCount      int                    `json:"completed_count"`
-	CompletionRate      float64                `json:"completion_rate"`
-	ProgressByUser      []TaskProgressWithUser `json:"progress_by_user"`
+	TaskID         int                    `json:"task_id"`
+	TaskTitle      string                 `json:"task_title"`
+	TotalUsers     int                    `json:"total_users"`
+	CompletedCount int                    `json:"completed_count"`
+	CompletionRate float64                `json:"completion_rate"`
+	ProgressByUser []TaskProgressWithUser `json:"progress_by_user"`
 }
 
 type TaskDetailResponse struct {
-	Task                Task                     `json:"task"`
-	TotalStudents       int                      `json:"total_students"`
-	CompletedStudents   []TaskProgressWithUser   `json:"completed_students"`
-	PendingStudents     []TaskProgressWithUser   `json:"pending_students"`
-	CompletionRate      float64                  `json:"completion_rate"`
+	Task              Task                   `json:"task"`
+	TotalStudents     int                    `json:"total_students"`
+	CompletedStudents []TaskProgressWithUser `json:"completed_students"`
+	PendingStudents   []TaskProgressWithUser `json:"pending_students"`
+	CompletionRate    float64                `json:"completion_rate"`
 }
 
 type TaskRepository interface {
 	Create(task *Task) error
-	GetByCourseID(courseID int) ([]Task, error)
+	GetByCourseID(courseID int, page, limit int) ([]Task, int, error)
 	GetByID(id int) (*Task, error)
 	Update(task *Task) error
 	Delete(id int) error

@@ -49,7 +49,7 @@ type submitExamRequest struct {
 func (h *QuestionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req createQuestionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -67,7 +67,7 @@ func (h *QuestionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.questionUC.Create(question); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -87,10 +87,10 @@ func (h *QuestionHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	question, err := h.questionUC.GetByID(id)
 	if err != nil {
 		if err == domain.ErrNotFound {
-			http.Error(w, "Question not found", http.StatusNotFound)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (h *QuestionHandler) GetByCourseID(w http.ResponseWriter, r *http.Request) 
 
 	questions, err := h.questionUC.GetByCourseID(courseID)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -126,7 +126,7 @@ func (h *QuestionHandler) GetBySessionID(w http.ResponseWriter, r *http.Request)
 
 	questions, err := h.questionUC.GetBySessionID(sessionID)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -144,7 +144,7 @@ func (h *QuestionHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var req updateQuestionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -162,7 +162,7 @@ func (h *QuestionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.questionUC.Update(question); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -179,7 +179,7 @@ func (h *QuestionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.questionUC.Delete(id); err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -196,7 +196,7 @@ func (h *QuestionHandler) SubmitExam(w http.ResponseWriter, r *http.Request) {
 
 	var req submitExamRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -210,7 +210,7 @@ func (h *QuestionHandler) SubmitExam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.questionUC.SubmitExam(submission); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -229,7 +229,7 @@ func (h *QuestionHandler) GetSubmissions(w http.ResponseWriter, r *http.Request)
 
 	submissions, err := h.questionUC.GetSubmissionsByQuestion(id)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -242,7 +242,7 @@ func (h *QuestionHandler) GetUserSubmissions(w http.ResponseWriter, r *http.Requ
 
 	submissions, err := h.questionUC.GetSubmissionsByUser(userID)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

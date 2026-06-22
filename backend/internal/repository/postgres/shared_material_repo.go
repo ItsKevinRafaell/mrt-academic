@@ -48,12 +48,11 @@ func (r *SharedMaterialRepo) GetByTargetCourse(courseID int) ([]domain.SharedMat
 		var scCode, scName, scDesc, scType sql.NullString
 		var scSks sql.NullInt64
 		var scCreated, scUpdated, mCreated, mUpdated sql.NullTime
-		var mCreatedBy sql.NullString
 
 		err := rows.Scan(
 			&item.ID, &item.RequestID, &item.MaterialID, &item.TargetCourseID, &item.SourceCourseID,
 			&item.SharedBy, &item.SharedAt, &item.IsActive,
-			&m.ID, &mSessionID, &mTopicID, &m.Title, &m.Description, &m.Type, &m.URL, &mCreatedBy, &mCreated, &mUpdated,
+			&m.ID, &mSessionID, &mTopicID, &m.Title, &m.Description, &m.Type, &m.URL, &mCreated, &mUpdated,
 			&sc.ID, &scCode, &scName, &scSks, &scDesc, &scType, &scCawuID, &scCreated, &scUpdated,
 		)
 		if err != nil {
@@ -67,9 +66,6 @@ func (r *SharedMaterialRepo) GetByTargetCourse(courseID int) ([]domain.SharedMat
 		if mTopicID.Valid {
 			tid := int(mTopicID.Int64)
 			m.TopicID = &tid
-		}
-		if mCreatedBy.Valid {
-			m.CreatedBy = &mCreatedBy.String
 		}
 		if mCreated.Valid {
 			m.CreatedAt = mCreated.Time

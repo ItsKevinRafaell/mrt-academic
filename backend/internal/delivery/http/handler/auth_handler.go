@@ -34,7 +34,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.authUsecase.Register(r.Context(), usecase.RegisterRequest{
+	user, err := h.authUsecase.Register(r.Context(), usecase.RegisterRequest{
 		NIM:      req.NIM,
 		FullName: req.FullName,
 		Email:    req.Email,
@@ -46,10 +46,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Success(w, http.StatusCreated, "User registered successfully", map[string]interface{}{
-		"user":    resp.User,
-		"warning": resp.Warning,
-	})
+	Success(w, http.StatusCreated, "User registered successfully", user)
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {

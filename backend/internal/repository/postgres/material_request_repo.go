@@ -106,7 +106,6 @@ func (r *MaterialRequestRepo) List(filter domain.MaterialRequestFilter) ([]domai
 		var rcCode, rcName, rcDesc, rcType, scCode, scName, scDesc, scType sql.NullString
 		var rcSks, scSks sql.NullInt64
 		var rcCreated, rcUpdated, scCreated, scUpdated, mCreated, mUpdated sql.NullTime
-		var mCreatedBy sql.NullString
 
 		err := rows.Scan(
 			&item.ID, &item.RequestingCourseID, &item.RequestedBy, &item.Purpose, &item.MaterialID,
@@ -135,9 +134,6 @@ func (r *MaterialRequestRepo) List(filter domain.MaterialRequestFilter) ([]domai
 		if mTopicID.Valid {
 			tid := int(mTopicID.Int64)
 			m.TopicID = &tid
-		}
-		if mCreatedBy.Valid {
-			m.CreatedBy = &mCreatedBy.String
 		}
 		if mCreated.Valid {
 			m.CreatedAt = mCreated.Time

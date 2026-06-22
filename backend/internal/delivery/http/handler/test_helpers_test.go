@@ -12,7 +12,7 @@ type stubCourseUsecase struct {
 
 func newStubCourseUsecase(courses []domain.Course, err error) *usecase.CourseUsecase {
 	stub := &stubCourseUsecase{courses: courses, err: err}
-	return usecase.NewCourseUsecase(stub, &stubSessionRepo{}, &stubMaterialRepo{}, &stubTaskRepo{}, nil)
+	return usecase.NewCourseUsecase(stub, &stubSessionRepo{}, &stubMaterialRepo{}, &stubTaskRepo{})
 }
 
 func (s *stubCourseUsecase) Create(course *domain.Course) error {
@@ -67,7 +67,6 @@ func (s *stubMaterialRepo) GetByCourseID(courseID int) ([]domain.SessionWithMate
 	return nil, nil
 }
 func (s *stubMaterialRepo) GetByID(id int) (*domain.Material, error) { return nil, nil }
-func (s *stubMaterialRepo) GetByIDWithCourse(id int) (*domain.Material, *domain.Course, error) { return nil, nil, nil }
 func (s *stubMaterialRepo) Update(material *domain.Material) error   { return nil }
 func (s *stubMaterialRepo) Delete(id int) error                      { return nil }
 

@@ -28,7 +28,7 @@ func (h *NotificationHandler) SendNotification(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := h.fonnte.Send(req.Phone, req.Message); err != nil {
-		Error(w, http.StatusInternalServerError, "Internal server error", "ERR_INTERNAL_SERVER")
+		Error(w, http.StatusInternalServerError, "Failed to send notification", "ERR_INTERNAL_SERVER")
 		return
 	}
 
@@ -58,7 +58,7 @@ func (h *NotificationHandler) SendTaskNotification(w http.ResponseWriter, r *htt
 	}
 
 	if err != nil {
-		Error(w, http.StatusInternalServerError, "Internal server error", "ERR_INTERNAL_SERVER")
+		Error(w, http.StatusInternalServerError, "Failed to send notification", "ERR_INTERNAL_SERVER")
 		return
 	}
 
