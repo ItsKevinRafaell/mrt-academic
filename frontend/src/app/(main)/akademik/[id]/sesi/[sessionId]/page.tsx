@@ -211,7 +211,7 @@ export default function SessionDetailPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6 max-w-6xl">
+    <div className="px-4 py-4 lg:px-8 lg:py-6 space-y-4 lg:space-y-6 max-w-6xl mx-auto">
       {/* Breadcrumb Navigation */}
       <Breadcrumb
         items={[
@@ -225,38 +225,39 @@ export default function SessionDetailPage() {
       <Button
         variant="ghost"
         onClick={() => router.push(`/akademik/${courseId}`)}
-        className="gap-2"
+        className="gap-2 -mt-2"
       >
         <ArrowLeft className="w-4 h-4" />
-        Kembali ke Mata Kuliah
+        <span className="hidden sm:inline">Kembali ke Mata Kuliah</span>
+        <span className="sm:hidden">Kembali</span>
       </Button>
 
       {/* Session Header */}
       <Card className="overflow-hidden border-primary/20">
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6">
-          <div className="flex items-start justify-between">
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 lg:p-6">
+          <div className="flex flex-col sm:flex-row items-start gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
                 <Badge variant="secondary" className="text-xs">
                   Sesi {session.number}
                 </Badge>
               </div>
-              <h1 className="text-3xl font-bold mb-2">{session.title}</h1>
+              <h1 className="text-xl lg:text-3xl font-bold mb-2">{session.title}</h1>
               {session.description && (
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   {session.description}
                 </p>
               )}
             </div>
-            <div className="flex-shrink-0 ml-6">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <BookOpen className="w-8 h-8 text-primary" />
+            <div className="flex-shrink-0">
+              <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <BookOpen className="w-7 h-7 lg:w-8 lg:h-8 text-primary" />
               </div>
             </div>
           </div>
 
           {/* Session Meta */}
-          <div className="flex items-center gap-6 mt-6 pt-6 border-t border-primary/10">
+          <div className="flex items-center gap-4 lg:gap-6 mt-4 lg:mt-6 pt-4 lg:pt-6 border-t border-primary/10">
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">
@@ -269,8 +270,8 @@ export default function SessionDetailPage() {
 
       {/* Top Section: Main Materials */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Materi Utama</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h2 className="text-xl lg:text-2xl font-bold">Materi Utama</h2>
           {isKurikulum && (
             <Dialog open={showAddMaterial} onOpenChange={setShowAddMaterial}>
               <DialogTrigger asChild>
@@ -349,9 +350,9 @@ export default function SessionDetailPage() {
         </div>
         {materials.length > 0 ? (
           <Card>
-            <div className="p-6">
+            <div className="p-4 lg:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
+                <h3 className="text-base lg:text-lg font-semibold flex items-center gap-2">
                   <FileText className="w-5 h-5" />
                   Materi Sesi
                 </h3>
@@ -362,17 +363,17 @@ export default function SessionDetailPage() {
                 {materials.map((material) => (
                   <div
                     key={material.id}
-                    className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:shadow-md transition-all group"
+                    className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 lg:p-4 rounded-xl border border-border hover:border-primary/50 hover:shadow-md transition-all group"
                   >
                     <a
                       href={material.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-4 flex-1"
+                      className="flex items-center gap-3 lg:gap-4 flex-1"
                     >
                       <div
                         className={cn(
-                          "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
+                          "w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center flex-shrink-0",
                           getMaterialColor(material.type)
                         )}
                       >
@@ -389,18 +390,20 @@ export default function SessionDetailPage() {
                         )}
                       </div>
                     </a>
-                    <Badge variant="outline" className="text-xs capitalize">
-                      {material.type}
-                    </Badge>
-                    {isKurikulum && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteMaterial(material.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {material.type}
+                      </Badge>
+                      {isKurikulum && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteMaterial(material.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -408,7 +411,7 @@ export default function SessionDetailPage() {
           </Card>
         ) : (
           <Card>
-            <div className="p-12 text-center">
+            <div className="p-8 lg:p-12 text-center">
               <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground">Belum ada materi untuk sesi ini</p>
             </div>
@@ -420,7 +423,7 @@ export default function SessionDetailPage() {
 
       {/* Bottom Section: Live Board Gallery */}
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold">Live Board Gallery</h2>
+        <h2 className="text-xl lg:text-2xl font-bold">Live Board Gallery</h2>
         <LiveBoardGallery sessionId={sessionId} courseId={courseId} />
       </section>
     </div>

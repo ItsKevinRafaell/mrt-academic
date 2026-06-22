@@ -28,7 +28,11 @@ export function CawuSwitcher() {
         getActiveCawu(),
       ]);
 
-      setCawus(cawusData);
+      // Deduplicate by ID
+      const uniqueMap = new Map<number, Cawu>();
+      cawusData.forEach((c) => uniqueMap.set(c.id, c));
+      const unique = Array.from(uniqueMap.values());
+      setCawus(unique);
 
       if (!selectedCawu && activeCawu) {
         setSelectedCawu(activeCawu);
@@ -60,15 +64,11 @@ export function CawuSwitcher() {
       value={selectedCawu?.id.toString()}
       onValueChange={handleCawuChange}
     >
-      <SelectTrigger className="w-auto min-w-[140px] border-0 bg-primary/5 hover:bg-primary/10 focus:ring-0 focus:ring-offset-0 gap-2">
+      <SelectTrigger className="w-auto min-w-[140px] border-0 bg-primary/5 hover:bg-primary/10 focus:ring-0 focus:ring-offset-0">
         <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-green-500" />
-          <span className="text-sm font-medium">
-            {selectedCawu ? `Cawu ${selectedCawu.semester}` : "Pilih Cawu"}
-          </span>
+          <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+          <SelectValue />
         </div>
-        <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto" />
-        <SelectValue className="hidden" />
       </SelectTrigger>
       <SelectContent>
         {cawus.map((cawu) => (

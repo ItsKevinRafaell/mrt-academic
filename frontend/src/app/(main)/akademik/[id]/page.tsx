@@ -246,7 +246,7 @@ export default function MatkulDetailPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/akademik" className="hover:text-primary">Akademik</Link>
@@ -255,7 +255,7 @@ export default function MatkulDetailPage() {
       </div>
 
       {/* Back link */}
-      <Button variant="ghost" size="sm" asChild>
+      <Button variant="ghost" size="sm" asChild className="-mt-2">
         <Link href="/akademik">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Kembali
@@ -263,20 +263,20 @@ export default function MatkulDetailPage() {
       </Button>
 
       {/* Course header */}
-      <div className="rounded-lg border bg-card p-6">
-        <div className="flex items-start gap-4">
+      <div className="rounded-lg border bg-card p-4 lg:p-6">
+        <div className="flex flex-col sm:flex-row items-start gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 shrink-0">
             <BookOpen className="h-7 w-7 text-primary" />
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <Badge variant="outline">{course.code}</Badge>
               <Badge variant="secondary">{course.sks} SKS</Badge>
               {course.cawu_id && <Badge>Cawu {course.cawu_id}</Badge>}
             </div>
-            <h1 className="text-2xl font-bold">{course.name}</h1>
+            <h1 className="text-xl lg:text-2xl font-bold">{course.name}</h1>
             {course.description && (
-              <p className="text-muted-foreground mt-1">{course.description}</p>
+              <p className="text-muted-foreground mt-1 text-sm">{course.description}</p>
             )}
             {course.instructors && course.instructors.length > 0 && (
               <p className="text-sm text-muted-foreground mt-2">
@@ -286,7 +286,7 @@ export default function MatkulDetailPage() {
           </div>
           {/* Kurikulum controls */}
           {isKurikulum && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
@@ -309,44 +309,43 @@ export default function MatkulDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="materi" className="gap-2">
-            <BookOpen className="h-4 w-4" />
-            Materi
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsTrigger value="materi" className="gap-1 sm:gap-2 text-xs sm:text-sm">
+            <BookOpen className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Materi</span>
           </TabsTrigger>
-          <TabsTrigger value="tugas" className="gap-2">
-            <ClipboardList className="h-4 w-4" />
-            Tugas
+          <TabsTrigger value="tugas" className="gap-1 sm:gap-2 text-xs sm:text-sm">
+            <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Tugas</span>
           </TabsTrigger>
-          <TabsTrigger value="bank-soal" className="gap-2">
-            <HelpCircle className="h-4 w-4" />
-            Bank Soal
+          <TabsTrigger value="bank-soal" className="gap-1 sm:gap-2 text-xs sm:text-sm">
+            <HelpCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Bank Soal</span>
           </TabsTrigger>
-          <TabsTrigger value="nilai" className="gap-2">
-            <Calculator className="h-4 w-4" />
-            Nilai
+          <TabsTrigger value="nilai" className="gap-1 sm:gap-2 text-xs sm:text-sm">
+            <Calculator className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Nilai</span>
           </TabsTrigger>
         </TabsList>
 
         {/* Materi Tab */}
         <TabsContent value="materi" className="mt-4">
-          {/* Topics List */}
           {topics.length === 0 ? (
             <EmptyState icon={BookOpen} message="Belum ada topik tersedia" />
           ) : (
-            <Accordion type="multiple" className="w-full space-y-4">
+            <Accordion type="multiple" className="w-full space-y-3">
               {topics.map((topic) => (
                 <AccordionItem
                   key={topic.id}
                   value={`topic-${topic.id}`}
-                  className="border rounded-lg px-4"
+                  className="border rounded-lg px-3 lg:px-4"
                 >
-                  <AccordionTrigger className="text-left hover:no-underline py-3">
-                    <div className="flex items-center gap-2 w-full pr-4">
-                      <BookOpen className="h-5 w-5 flex-shrink-0" />
+                  <AccordionTrigger className="text-left hover:no-underline py-2 lg:py-3">
+                    <div className="flex items-center gap-2 w-full pr-2 lg:pr-4">
+                      <BookOpen className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
                       {editingTopicId === topic.id ? (
                         <Input
-                          className="h-8 flex-1"
+                          className="h-7 lg:h-8 flex-1 text-sm"
                           value={editingTopicTitle}
                           onChange={(e) => setEditingTopicTitle(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
@@ -354,7 +353,7 @@ export default function MatkulDetailPage() {
                           autoFocus
                         />
                       ) : (
-                        <CardTitle className="text-lg flex-1">{topic.title}</CardTitle>
+                        <CardTitle className="text-base lg:text-lg flex-1">{topic.title}</CardTitle>
                       )}
                       <Badge variant="secondary" className="text-xs shrink-0">
                         {topic.sessions?.length || 0} sesi
@@ -362,12 +361,12 @@ export default function MatkulDetailPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                       <p className="text-sm text-muted-foreground">
                         {topic.description || "Tidak ada deskripsi"}
                       </p>
                       {isKurikulum && (
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 shrink-0">
                           {editingTopicId === topic.id ? (
                             <>
                               <Button size="sm" variant="ghost" onClick={() => handleUpdateTopic(topic.id)}>Simpan</Button>
@@ -395,7 +394,7 @@ export default function MatkulDetailPage() {
                     ) : (
                       <div className="space-y-2 mb-3">
                         {topic.sessions.map((session, index) => (
-                          <div key={session.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                          <div key={session.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
                             <Link
                               href={`/akademik/${matkulId}/sesi/${session.id}`}
                               className="flex items-center gap-2 flex-1"
@@ -406,7 +405,7 @@ export default function MatkulDetailPage() {
                               <span className="font-medium text-sm">{session.title}</span>
                             </Link>
                             {isKurikulum && (
-                              <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={() => handleDeleteSession(session.id)}>
+                              <Button size="sm" variant="ghost" className="sm:opacity-0 sm:group-hover:opacity-100 self-end sm:self-auto" onClick={() => handleDeleteSession(session.id)}>
                                 <Trash2 className="h-3 w-3 text-destructive" />
                               </Button>
                             )}
@@ -426,7 +425,7 @@ export default function MatkulDetailPage() {
                                 value={quickAddSessionTitle}
                                 onChange={(e) => setQuickAddSessionTitle(e.target.value)}
                                 onKeyDown={(e) => e.key === "Enter" && handleCreateSession(topic.id)}
-                                className="h-8"
+                                className="h-8 flex-1"
                               />
                               <Button size="sm" onClick={() => handleCreateSession(topic.id)}>Simpan</Button>
                               <Button size="sm" variant="ghost" onClick={() => { setShowQuickAddSession(null); setQuickAddSessionTitle(""); }}>Batal</Button>
@@ -462,7 +461,7 @@ export default function MatkulDetailPage() {
                   <button
                     key={task.id}
                     onClick={() => setSelectedTask(task)}
-                    className="flex items-center gap-3 w-full text-left rounded-lg border p-4 hover:bg-accent transition-colors"
+                    className="flex items-center gap-2 lg:gap-3 w-full text-left rounded-lg border p-3 lg:p-4 hover:bg-accent transition-colors"
                   >
                     <div
                       className={`h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
@@ -514,14 +513,14 @@ export default function MatkulDetailPage() {
                           e.stopPropagation();
                           setMonitoringTaskId(task.id);
                         }}
-                        className="mr-2"
+                        className="mr-2 shrink-0"
                       >
-                        <Users className="h-4 w-4 mr-1" />
-                        Monitoring
+                        <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span className="hidden sm:inline">Monitoring</span>
                       </Button>
                     )}
                     {isCompleted && (
-                      <Badge variant="success" className="text-xs">
+                      <Badge variant="success" className="text-xs shrink-0">
                         Selesai
                       </Badge>
                     )}
@@ -541,7 +540,7 @@ export default function MatkulDetailPage() {
         <TabsContent value="nilai" className="mt-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <CardTitle className="flex items-center gap-2">
                   <Calculator className="h-5 w-5" />
                   Komponen Penilaian
@@ -557,8 +556,8 @@ export default function MatkulDetailPage() {
             <CardContent className="space-y-4">
               {/* Add Component Form */}
               {showAddComponent && (
-                <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
-                  <div className="flex gap-2">
+                <div className="p-3 lg:p-4 border rounded-lg bg-muted/30 space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Input
                       placeholder="Nama komponen (e.g. UTS)"
                       value={newComponentName}
@@ -570,7 +569,7 @@ export default function MatkulDetailPage() {
                       placeholder="Bobot %"
                       value={newComponentWeight}
                       onChange={(e) => setNewComponentWeight(e.target.value)}
-                      className="w-24"
+                      className="w-full sm:w-24"
                     />
                     <Button onClick={handleAddComponent} disabled={!newComponentName || !newComponentWeight}>
                       Simpan
@@ -591,9 +590,9 @@ export default function MatkulDetailPage() {
                   <div className="space-y-3">
                     {gradeComponents.map((comp) => (
                       <div key={comp.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex-1">
-                          <div className="font-medium">{comp.name}</div>
-                          <div className="text-sm text-muted-foreground">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm">{comp.name}</div>
+                          <div className="text-xs text-muted-foreground">
                             Bobot: {comp.weight}%
                           </div>
                         </div>
@@ -602,8 +601,8 @@ export default function MatkulDetailPage() {
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         )}
-                        <div className="text-right">
-                          <div className="text-lg font-semibold">
+                        <div className="text-right ml-2">
+                          <div className="text-sm lg:text-lg font-semibold">
                             {comp.score != null ? comp.score.toFixed(1) : "-"}
                           </div>
                           {comp.score != null && (
@@ -617,7 +616,7 @@ export default function MatkulDetailPage() {
                   </div>
 
                   <div className="border-t pt-4">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
                       <div>
                         <div className="text-sm text-muted-foreground">Total Bobot</div>
                         <div className="text-lg font-semibold">
@@ -626,7 +625,7 @@ export default function MatkulDetailPage() {
                       </div>
                       <div className="text-right">
                         <div className="text-sm text-muted-foreground">Nilai Akhir</div>
-                        <div className="text-2xl font-bold text-primary">
+                        <div className="text-xl lg:text-2xl font-bold text-primary">
                           {(() => {
                             const totalWeight = gradeComponents.reduce((sum, c) => sum + c.weight, 0);
                             if (totalWeight === 0) return "-";
