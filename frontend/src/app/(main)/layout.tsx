@@ -49,20 +49,21 @@ export default function MainLayout({
 
       {/* Sidebar - collapsible */}
       <div className={`
-        fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto
+        fixed inset-y-0 left-0 z-50
         transform transition-transform duration-300 lg:transform-none
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        lg:relative lg:z-auto
       `}>
         <Sidebar onNavigate={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile menu button + top bar */}
-        <div className="flex items-center gap-3 px-4 lg:px-6 py-3 bg-card border-b border-border">
+        {/* Top bar */}
+        <header className="flex items-center gap-3 px-4 lg:px-6 py-3 bg-card border-b border-border">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+            className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors shrink-0"
             aria-label="Open menu"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,10 +87,10 @@ export default function MainLayout({
               <span className="text-xs">⌘</span>K
             </kbd>
           </button>
-        </div>
+        </header>
 
         {/* Main content - fills remaining space */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 pt-12 lg:p-8 lg:pt-6">{children}</main>
       </div>
 
       {/* Command Bar (Ctrl+K) */}

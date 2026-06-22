@@ -86,7 +86,7 @@ export default function AkademikPage() {
     <div className="container mx-auto p-6">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Akademik</h1>
             <p className="text-muted-foreground mt-2">
@@ -108,7 +108,7 @@ export default function AkademikPage() {
           <CardContent className="p-6">
             <div className="space-y-4">
               <h3 className="font-semibold">Tambah Mata Kuliah Baru</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Nama Matkul</label>
                   <Input

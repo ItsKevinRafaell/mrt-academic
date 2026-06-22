@@ -130,45 +130,47 @@ export default function TasksPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
-            <SelectTrigger className="w-36">
+      <div className="flex flex-col gap-3 w-full">
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua</SelectItem>
+                <SelectItem value="pending">Belum Selesai</SelectItem>
+                <SelectItem value="completed">Selesai</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Select value={filterCourse} onValueChange={setFilterCourse}>
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue placeholder="Filter berdasarkan mata kuliah" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Mata Kuliah</SelectItem>
+              {courses.map((course) => (
+                <SelectItem key={course.id} value={String(course.id)}>
+                  {course.code} - {course.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Semua</SelectItem>
-              <SelectItem value="pending">Belum Selesai</SelectItem>
-              <SelectItem value="completed">Selesai</SelectItem>
+              <SelectItem value="deadline-asc">Deadline ↑</SelectItem>
+              <SelectItem value="deadline-desc">Deadline ↓</SelectItem>
+              <SelectItem value="name">Nama A-Z</SelectItem>
             </SelectContent>
           </Select>
         </div>
-
-        <Select value={filterCourse} onValueChange={setFilterCourse}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Filter berdasarkan mata kuliah" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Mata Kuliah</SelectItem>
-            {courses.map((course) => (
-              <SelectItem key={course.id} value={String(course.id)}>
-                {course.code} - {course.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="deadline-asc">Deadline ↑</SelectItem>
-            <SelectItem value="deadline-desc">Deadline ↓</SelectItem>
-            <SelectItem value="name">Nama A-Z</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Pending Tasks */}
@@ -186,7 +188,7 @@ export default function TasksPage() {
               }`}
             >
               <CardContent className="p-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 w-full">
                   <button
                     onClick={() => handleToggle(task.id, true)}
                     className="h-6 w-6 rounded-full border-2 border-muted-foreground hover:border-green-500 hover:bg-green-500/10 transition-colors shrink-0"
@@ -195,10 +197,10 @@ export default function TasksPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{task.title}</p>
                       {isOverdue(task.deadline) && (
-                        <Badge variant="destructive" className="text-xs">Terlambat</Badge>
+                        <Badge variant="destructive" className="text-xs shrink-0">Terlambat</Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">
                       <span className="flex items-center gap-1">
                         <BookOpen className="h-3 w-3" />
                         {getCourseName(task.course_id)}
@@ -216,6 +218,7 @@ export default function TasksPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => router.push(`/akademik/${task.course_id}?tab=tugas`)}
+                    className="shrink-0"
                   >
                     Detail
                   </Button>
