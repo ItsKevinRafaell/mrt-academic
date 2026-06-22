@@ -30,7 +30,6 @@ export function CawuSwitcher() {
 
       setCawus(cawusData);
 
-      // Set active cawu as default if no cawu selected
       if (!selectedCawu && activeCawu) {
         setSelectedCawu(activeCawu);
       } else if (!selectedCawu && cawusData.length > 0) {
@@ -52,7 +51,7 @@ export function CawuSwitcher() {
 
   if (isLoading || cawus.length === 0) {
     return (
-      <div className="w-48 h-10 bg-muted animate-pulse rounded-md" />
+      <div className="w-40 h-9 bg-muted animate-pulse rounded-lg" />
     );
   }
 
@@ -61,13 +60,29 @@ export function CawuSwitcher() {
       value={selectedCawu?.id.toString()}
       onValueChange={handleCawuChange}
     >
-      <SelectTrigger className="w-48">
-        <SelectValue placeholder="Pilih Cawu" />
+      <SelectTrigger className="w-auto min-w-[140px] border-0 bg-primary/5 hover:bg-primary/10 focus:ring-0 focus:ring-offset-0 gap-2">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-green-500" />
+          <span className="text-sm font-medium">
+            {selectedCawu ? `Cawu ${selectedCawu.semester}` : "Pilih Cawu"}
+          </span>
+        </div>
+        <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto" />
+        <SelectValue className="hidden" />
       </SelectTrigger>
       <SelectContent>
         {cawus.map((cawu) => (
           <SelectItem key={cawu.id} value={cawu.id.toString()}>
-            Cawu {cawu.semester}
+            <div className="flex items-center gap-2">
+              <span className={cawu.id === selectedCawu?.id ? "text-primary font-semibold" : ""}>
+                Cawu {cawu.semester}
+              </span>
+              {cawu.is_active && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                  Aktif
+                </span>
+              )}
+            </div>
           </SelectItem>
         ))}
       </SelectContent>

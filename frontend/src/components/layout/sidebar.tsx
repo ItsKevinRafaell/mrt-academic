@@ -36,7 +36,7 @@ interface NavItem {
   badge?: string;
 }
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const { user, role, logout } = useAuthStore();
@@ -121,6 +121,7 @@ export function Sidebar() {
     const button = (
       <Link
         href={item.href}
+        onClick={() => onNavigate?.()}
         className={cn(
           "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
           "hover:bg-accent hover:text-accent-foreground",
