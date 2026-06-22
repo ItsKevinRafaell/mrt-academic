@@ -8,6 +8,7 @@ import (
 	"mrt-backend/internal/repository/postgres"
 	"mrt-backend/internal/usecase"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -31,6 +32,7 @@ type Router struct {
 	calendarUsecase         *usecase.CalendarUsecase
 	boardGalleryUsecase     *usecase.BoardGalleryUsecase
 	bankSoalUsecase         *usecase.BankSoalUsecase
+	fonnteService           *usecase.FonnteService
 	authMiddleware          *middleware.AuthMiddleware
 	corsMiddleware          *middleware.CORSMiddleware
 }
@@ -76,6 +78,8 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 	boardGalleryRepo := postgres.NewBoardGalleryRepository(db)
 	boardGalleryUsecase := usecase.NewBoardGalleryUsecase(boardGalleryRepo)
 	bankSoalUsecase := usecase.NewBankSoalUsecase(examArchiveRepo, simulationRepo, simulationQuestionRepo)
+	fonnteToken := os.Getenv("FONNTE_TOKEN")
+	fonnteService := usecase.NewFonnteService(fonnteToken)
 
 	return &Router{
 		mux:                   http.NewServeMux(),
@@ -97,6 +101,7 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 		calendarUsecase:       calendarUsecase,
 		boardGalleryUsecase:   boardGalleryUsecase,
 		bankSoalUsecase:       bankSoalUsecase,
+		fonnteService:         fonnteService,
 		authMiddleware:        middleware.NewAuthMiddleware(authUsecase),
 		corsMiddleware:        middleware.NewCORSMiddleware(),
 	}
@@ -280,6 +285,11 @@ func (r *Router) Setup() {
 	r.mux.Handle("GET /api/v1/bank-soal/simulations/{simulation_id}/questions", auth(http.HandlerFunc(bankSoalHandler.GetQuestionsBySimulation)))
 	r.mux.Handle("PUT /api/v1/bank-soal/questions/{id}", auth(admin(http.HandlerFunc(bankSoalHandler.UpdateQuestion))))
 	r.mux.Handle("DELETE /api/v1/bank-soal/questions/{id}", auth(admin(http.HandlerFunc(bankSoalHandler.DeleteQuestion))))
+
+	// Notification routes
+	notificationHandler := handler.NewNotificationHandler(r.fonnteService)
+	r.mux.Handle("POST /api/v1/notifications/send", auth(admin(http.HandlerFunc(notificationHandler.SendNotification))))
+	r.mux.Handle("POST /api/v1/notifications/task", auth(http.HandlerFunc(notificationHandler.SendTaskNotification)))
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {

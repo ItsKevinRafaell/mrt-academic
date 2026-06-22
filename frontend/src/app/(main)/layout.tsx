@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { CommandBar } from "@/components/command-bar";
 import { CawuSwitcher } from "@/components/cawu-switcher";
+import { NotificationBell } from "@/components/NotificationBell";
 import { Search } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { Loader2 } from "lucide-react";
@@ -71,6 +72,7 @@ export default function MainLayout({
             </svg>
           </button>
           <CawuSwitcher />
+          <NotificationBell />
           <button
             onClick={() => {
               const event = new KeyboardEvent("keydown", {
