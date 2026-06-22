@@ -73,16 +73,7 @@ export function CawuSwitcher() {
       <SelectContent>
         {cawus.map((cawu) => (
           <SelectItem key={cawu.id} value={cawu.id.toString()}>
-            <div className="flex items-center gap-2">
-              <span className={cawu.id === selectedCawu?.id ? "text-primary font-semibold" : ""}>
-                Cawu {cawu.semester}
-              </span>
-              {cawu.is_active && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                  Aktif
-                </span>
-              )}
-            </div>
+            Cawu {cawu.semester}{cawu.is_active ? " (Aktif)" : ""}
           </SelectItem>
         ))}
       </SelectContent>

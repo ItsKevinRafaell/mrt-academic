@@ -51,6 +51,7 @@ export default function IPKPage() {
   const [loading, setLoading] = useState(true);
   const [localScores, setLocalScores] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<"detail" | "summary">("detail");
 
   const isAdmin = role === "SUPER_ADMIN" || role === "KURIKULUM";
 
@@ -284,19 +285,101 @@ export default function IPKPage() {
         </Card>
       </div>
 
-      {/* Course Cards */}
-      {ipkData.length === 0 ? (
-        <Card>
-          <div className="p-12 text-center">
-            <Calculator className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
-            <h3 className="text-lg font-semibold mb-2">Belum Ada Mata Kuliah</h3>
-            <p className="text-muted-foreground">
-              Admin Kurikulum belum menambahkan mata kuliah untuk Cawu {cawu}
-            </p>
+      {/* View Toggle */}
+      <div className="flex gap-2">
+        <Button
+          variant={viewMode === "detail" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setViewMode("detail")}
+        >
+          Detail
+        </Button>
+        <Button
+          variant={viewMode === "summary" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setViewMode("summary")}
+        >
+          Summary
+        </Button>
+      </div>
+
+      {/* Summary Table */}
+      {viewMode === "summary" && (
+        <Card className="overflow-hidden">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Ringkasan Nilai</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-3 font-medium">Mata Kuliah</th>
+                    <th className="text-center py-2 px-3 font-medium">SKS</th>
+                    <th className="text-center py-2 px-3 font-medium">Nilai</th>
+                    <th className="text-center py-2 px-3 font-medium">Grade</th>
+                    <th className="text-center py-2 px-3 font-medium">Bobot</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ipkData.map((course) => {
+                    const finalScore = calculateFinalScore(course);
+                    const grade = getLetterGrade(finalScore);
+                    const point = getGradePoint(grade);
+                    return (
+                      <tr key={course.course_id} className="border-b last:border-0 hover:bg-muted/50">
+                        <td className="py-2 px-3">
+                          <span className="font-medium">{course.course_name}</span>
+                          <span className="text-muted-foreground ml-2 font-mono text-xs">{course.course_code}</span>
+                        </td>
+                        <td className="text-center py-2 px-3">{course.sks}</td>
+                        <td className="text-center py-2 px-3">{finalScore > 0 ? finalScore.toFixed(1) : "-"}</td>
+                        <td className="text-center py-2 px-3">
+                          {finalScore > 0 ? (
+                            <Badge variant="secondary" className="font-semibold">{grade}</Badge>
+                          ) : "-"}
+                        </td>
+                        <td className="text-center py-2 px-3">{finalScore > 0 ? (point * course.sks).toFixed(2) : "-"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 font-bold">
+                    <td className="py-2 px-3">Total</td>
+                    <td className="text-center py-2 px-3">{ipkData.reduce((s, c) => s + c.sks, 0)}</td>
+                    <td className="py-2 px-3"></td>
+                    <td className="text-center py-2 px-3">
+                      <span className="text-lg">{ip.toFixed(2)}</span>
+                    </td>
+                    <td className="text-center py-2 px-3">
+                      {ipkData.reduce((sum, c) => {
+                        const score = calculateFinalScore(c);
+                        const grade = getLetterGrade(score);
+                        return sum + (getGradePoint(grade) * c.sks);
+                      }, 0).toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      )}
+
+      {/* Course Cards */}
+      {viewMode === "detail" && (
+        <>
+          {ipkData.length === 0 ? (
+            <Card>
+              <div className="p-12 text-center">
+                <Calculator className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+                <h3 className="text-lg font-semibold mb-2">Belum Ada Mata Kuliah</h3>
+                <p className="text-muted-foreground">
+                  Admin Kurikulum belum menambahkan mata kuliah untuk Cawu {cawu}
+                </p>
+              </div>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {ipkData.map((course) => {
             const finalScore = calculateFinalScore(course);
             const grade = getLetterGrade(finalScore);
@@ -388,6 +471,8 @@ export default function IPKPage() {
             );
           })}
         </div>
+          )}
+        </>
       )}
     </div>
   );
