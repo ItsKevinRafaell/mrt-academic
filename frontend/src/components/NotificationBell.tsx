@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import { Bell, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { getTasks, type TaskWithProgress } from '@/lib/api/tasks';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { getTasks } from '@/lib/api/tasks';
 import { useCourses } from '@/lib/api/courses';
 
 interface NotificationItem {
@@ -73,8 +75,8 @@ export function NotificationBell() {
   const unread = notifications.length;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="h-8 w-8 relative">
           <Bell className="h-5 w-5" />
           {unread > 0 && (
@@ -86,15 +88,17 @@ export function NotificationBell() {
             </Badge>
           )}
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
-        <div className="p-3 border-b">
-          <h4 className="font-semibold text-sm">Notifikasi</h4>
-          <p className="text-xs text-muted-foreground">
-            {unread} tugas perlu perhatian
-          </p>
-        </div>
-        <div className="max-h-80 overflow-y-auto">
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between">
+            <span>Notifikasi</span>
+            <span className="text-xs text-muted-foreground font-normal">
+              {unread} tugas perlu perhatian
+            </span>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="max-h-80 overflow-y-auto -mx-6">
           {notifications.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
               Tidak ada notifikasi
@@ -104,7 +108,8 @@ export function NotificationBell() {
               <a
                 key={n.id}
                 href={n.href}
-                className="flex items-start gap-3 p-3 hover:bg-muted transition-colors border-b last:border-0"
+                onClick={() => setOpen(false)}
+                className="flex items-start gap-3 p-4 hover:bg-muted transition-colors border-b last:border-0"
               >
                 <div className="mt-0.5">
                   {n.type === 'overdue' ? (
@@ -129,7 +134,7 @@ export function NotificationBell() {
             ))
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 }
