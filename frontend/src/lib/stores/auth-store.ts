@@ -7,17 +7,19 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  _hasHydrated: boolean;
   setUser: (user: User, role: Role, token: string) => void;
   logout: () => void;
-  getToken: () => string | null;
+  setHydrated: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   role: null,
   token: null,
   isLoading: true,
   isAuthenticated: false,
+  _hasHydrated: false,
 
   setUser: (user, role, token) => {
     if (typeof window !== "undefined") {
@@ -46,13 +48,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  getToken: () => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("mrt_token");
+  setHydrated: () => {
+    set({ _hasHydrated: true });
   },
 }));
 
-// Hydrate from localStorage on client mount
+// Client-side hydration
 if (typeof window !== "undefined") {
   const token = localStorage.getItem("mrt_token");
   const userStr = localStorage.getItem("mrt_user");
@@ -60,18 +61,22 @@ if (typeof window !== "undefined") {
 
   if (token && userStr && role) {
     try {
-      const user = JSON.parse(userStr) as User;
+      const user = JSON.parse(userStr);
       useAuthStore.setState({
         user,
         role: role as Role,
         token,
         isAuthenticated: true,
         isLoading: false,
+        _hasHydrated: true,
       });
     } catch {
       localStorage.removeItem("mrt_token");
       localStorage.removeItem("mrt_user");
       localStorage.removeItem("mrt_role");
+      useAuthStore.setState({ _hasHydrated: true });
     }
+  } else {
+    useAuthStore.setState({ _hasHydrated: true });
   }
 }

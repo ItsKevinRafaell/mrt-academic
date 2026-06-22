@@ -87,32 +87,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       label: "Catatan Saya",
       href: "/catatan",
     },
+    {
+      icon: Users,
+      label: "Mahasiswa",
+      href: "/mahasiswa",
+    },
   ];
 
   // Bank Soal is NOT in sidebar - it should be accessed from within course detail page
-
-  // Admin navigation items (conditional based on role)
-  // NOTE: Manajemen Akademik is now integrated into /akademik for KURIKULUM
-  // Monitoring is now inline in task cards (no separate page)
-  const adminNav: NavItem[] = [];
-
-  // SEKRETARIS and SUPER_ADMIN can manage calendar/schedule
-  if (role === "SEKRETARIS" || role === "SUPER_ADMIN") {
-    adminNav.push({
-      icon: Calendar,
-      label: "Manajemen Kalender",
-      href: "/admin/calendar",
-    });
-  }
-
-  // SUPER_ADMIN can manage users
-  if (role === "SUPER_ADMIN") {
-    adminNav.push({
-      icon: Users,
-      label: "Manajemen Warga",
-      href: ROUTES.ADMIN_USERS,
-    });
-  }
 
   const isActive = (href: string) => {
     if (href === ROUTES.DASHBOARD) {
@@ -227,32 +209,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Main Menu */}
+      <nav className="flex-1 overflow-y-auto p-4">
         <div className="space-y-1">
-          {!collapsed && (
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Menu
-            </p>
-          )}
           {mainNav.map((item) => (
             <NavButton key={item.href} item={item} />
           ))}
         </div>
-
-        {/* Admin Menu (if applicable) */}
-        {adminNav.length > 0 && (
-          <div className="space-y-1">
-            {!collapsed && (
-              <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Admin
-              </p>
-            )}
-            {adminNav.map((item) => (
-              <NavButton key={item.href} item={item} />
-            ))}
-          </div>
-        )}
       </nav>
 
       {/* Logout Button */}
