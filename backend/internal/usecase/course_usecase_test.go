@@ -78,6 +78,7 @@ func (m *mockMaterialRepo) GetBySessionID(sessionID int) ([]domain.Material, err
 	return nil, nil
 }
 func (m *mockMaterialRepo) GetByID(id int) (*domain.Material, error) { return nil, nil }
+func (m *mockMaterialRepo) GetByIDWithCourse(id int) (*domain.Material, *domain.Course, error) { return nil, nil, nil }
 func (m *mockMaterialRepo) Update(mat *domain.Material) error        { return nil }
 func (m *mockMaterialRepo) Delete(id int) error                      { return nil }
 

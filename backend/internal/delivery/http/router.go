@@ -31,8 +31,9 @@ type Router struct {
 	scheduleUsecase         *usecase.ScheduleUsecase
 	calendarUsecase         *usecase.CalendarUsecase
 	boardGalleryUsecase     *usecase.BoardGalleryUsecase
-	bankSoalUsecase         *usecase.BankSoalUsecase
-	fonnteService           *usecase.FonnteService
+	bankSoalUsecase          *usecase.BankSoalUsecase
+	fonnteService            *usecase.FonnteService
+	materialRequestUsecase   *usecase.MaterialRequestUseCase
 	authMiddleware          *middleware.AuthMiddleware
 	corsMiddleware          *middleware.CORSMiddleware
 }
@@ -57,6 +58,8 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 	examArchiveRepo := postgres.NewExamArchiveRepository(db)
 	simulationRepo := postgres.NewSimulationRepository(db)
 	simulationQuestionRepo := postgres.NewSimulationQuestionRepository(db)
+	materialRequestRepo := postgres.NewMaterialRequestRepo(db)
+	sharedMaterialRepo := postgres.NewSharedMaterialRepo(db)
 
 	authUsecase := usecase.NewAuthUsecase(userRepo, userRoleRepo, jwtSecret)
 	userUsecase := usecase.NewUserUseCase(userRepo, userRoleRepo)
@@ -80,6 +83,7 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 	bankSoalUsecase := usecase.NewBankSoalUsecase(examArchiveRepo, simulationRepo, simulationQuestionRepo)
 	fonnteToken := os.Getenv("FONNTE_TOKEN")
 	fonnteService := usecase.NewFonnteService(fonnteToken)
+	materialRequestUsecase := usecase.NewMaterialRequestUseCase(materialRequestRepo, sharedMaterialRepo, materialRepo)
 
 	return &Router{
 		mux:                   http.NewServeMux(),
@@ -100,8 +104,9 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 		scheduleUsecase:       scheduleUsecase,
 		calendarUsecase:       calendarUsecase,
 		boardGalleryUsecase:   boardGalleryUsecase,
-		bankSoalUsecase:       bankSoalUsecase,
-		fonnteService:         fonnteService,
+		bankSoalUsecase:        bankSoalUsecase,
+		fonnteService:          fonnteService,
+		materialRequestUsecase: materialRequestUsecase,
 		authMiddleware:        middleware.NewAuthMiddleware(authUsecase),
 		corsMiddleware:        middleware.NewCORSMiddleware(),
 	}
@@ -290,6 +295,15 @@ func (r *Router) Setup() {
 	notificationHandler := handler.NewNotificationHandler(r.fonnteService)
 	r.mux.Handle("POST /api/v1/notifications/send", auth(admin(http.HandlerFunc(notificationHandler.SendNotification))))
 	r.mux.Handle("POST /api/v1/notifications/task", auth(http.HandlerFunc(notificationHandler.SendTaskNotification)))
+
+	// Material Request routes (content sharing)
+	materialRequestHandler := handler.NewMaterialRequestHandler(r.materialRequestUsecase)
+	r.mux.Handle("POST /api/v1/material-requests", auth(http.HandlerFunc(materialRequestHandler.CreateRequest)))
+	r.mux.Handle("GET /api/v1/material-requests", auth(http.HandlerFunc(materialRequestHandler.ListRequests)))
+	r.mux.Handle("GET /api/v1/material-requests/{id}", auth(http.HandlerFunc(materialRequestHandler.GetRequest)))
+	r.mux.Handle("PATCH /api/v1/material-requests/{id}/review", auth(admin(http.HandlerFunc(materialRequestHandler.ReviewRequest))))
+	r.mux.Handle("GET /api/v1/courses/{courseId}/shared-materials", auth(http.HandlerFunc(materialRequestHandler.GetSharedMaterials)))
+	r.mux.Handle("GET /api/v1/material-requests/pending-count", auth(admin(http.HandlerFunc(materialRequestHandler.GetPendingCount))))
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {

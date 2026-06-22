@@ -15,11 +15,11 @@ func NewMaterialRepo(db *sql.DB) *MaterialRepo {
 }
 
 func (r *MaterialRepo) Create(m *domain.Material) error {
-	query := `INSERT INTO materials (session_id, title, description, type, url)
-		VALUES ($1, $2, $3, $4, $5)
+	query := `INSERT INTO materials (session_id, title, description, type, url, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at`
 
-	return r.db.QueryRow(query, m.SessionID, m.Title, m.Description, m.Type, m.URL).
+	return r.db.QueryRow(query, m.SessionID, m.Title, m.Description, m.Type, m.URL, m.CreatedBy).
 		Scan(&m.ID, &m.CreatedAt, &m.UpdatedAt)
 }
 
@@ -140,4 +140,74 @@ func (r *MaterialRepo) Delete(id int) error {
 		return domain.ErrNotFound
 	}
 	return nil
+}
+
+func (r *MaterialRepo) GetByIDWithCourse(id int) (*domain.Material, *domain.Course, error) {
+	query := `SELECT m.id, m.session_id, m.topic_id, m.title, m.description, m.type, m.url, m.created_by, m.created_at, m.updated_at,
+		c.id, c.code, c.name, c.sks, c.description, c.course_type, c.cawu_id, c.created_at, c.updated_at
+		FROM materials m
+		LEFT JOIN sessions s ON s.id = m.session_id
+		LEFT JOIN courses c ON c.id = COALESCE(s.course_id,
+			(SELECT course_id FROM topics WHERE id = m.topic_id))
+		WHERE m.id = $1`
+
+	var m domain.Material
+	var c domain.Course
+	var sessionID, topicID, cawuID sql.NullInt64
+	var cCode, cName, cDesc, cType sql.NullString
+	var cSks sql.NullInt64
+	var cCreated, cUpdated sql.NullTime
+	var mCreatedBy sql.NullString
+
+	err := r.db.QueryRow(query, id).Scan(
+		&m.ID, &sessionID, &topicID, &m.Title, &m.Description,
+		&m.Type, &m.URL, &mCreatedBy, &m.CreatedAt, &m.UpdatedAt,
+		&c.ID, &cCode, &cName, &cSks, &cDesc, &cType, &cawuID, &cCreated, &cUpdated,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil, domain.ErrNotFound
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if sessionID.Valid {
+		sid := int(sessionID.Int64)
+		m.SessionID = &sid
+	}
+	if topicID.Valid {
+		tid := int(topicID.Int64)
+		m.TopicID = &tid
+	}
+	if mCreatedBy.Valid {
+		m.CreatedBy = &mCreatedBy.String
+	}
+	if c.ID != 0 {
+		if cCode.Valid {
+			c.Code = cCode.String
+		}
+		if cName.Valid {
+			c.Name = cName.String
+		}
+		if cDesc.Valid {
+			c.Description = cDesc.String
+		}
+		if cType.Valid {
+			c.CourseType = cType.String
+		}
+		if cSks.Valid {
+			c.SKS = int(cSks.Int64)
+		}
+		if cawuID.Valid {
+			c.CawuID = domain.NullInt64{NullInt64: sql.NullInt64{Int64: cawuID.Int64, Valid: true}}
+		}
+		if cCreated.Valid {
+			c.CreatedAt = cCreated.Time
+		}
+		if cUpdated.Valid {
+			c.UpdatedAt = cUpdated.Time
+		}
+	}
+
+	return &m, &c, nil
 }
