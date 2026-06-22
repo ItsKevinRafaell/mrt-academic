@@ -39,6 +39,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { LiveBoardGallery } from "@/components/LiveBoardGallery";
+import { NotesPage } from "@/components/NotesPage";
 import { getSession, type Session } from "@/lib/api/sessions";
 import { getMaterialsBySession, createMaterial, deleteMaterial, type Material } from "@/lib/api/materials";
 import { getCourse } from "@/lib/api/courses";
@@ -427,6 +428,17 @@ export default function SessionDetailPage() {
       <section className="space-y-4">
         <h2 className="text-xl lg:text-2xl font-bold">Live Board Gallery</h2>
         <LiveBoardGallery sessionId={sessionId} courseId={courseId} />
+      </section>
+
+      {/* Notes for this session */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl lg:text-2xl font-bold">Catatan Sesi Ini</h2>
+          <Button variant="outline" size="sm" onClick={() => router.push(`/catatan`)}>
+            Lihat Semua Catatan
+          </Button>
+        </div>
+        <NotesPage sessionId={sessionId} />
       </section>
     </div>
   );

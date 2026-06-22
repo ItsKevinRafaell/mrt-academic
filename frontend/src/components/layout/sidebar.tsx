@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  NotebookPen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +81,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       icon: Calculator,
       label: "Kalkulator IPK",
       href: ROUTES.IPK,
+    },
+    {
+      icon: NotebookPen,
+      label: "Catatan Saya",
+      href: "/catatan",
     },
   ];
 

@@ -16,6 +16,7 @@ import {
   type BoardGalleryItem,
 } from '@/lib/api/board-gallery';
 import { EnhancedDocumentScanner, type ScanResult } from './EnhancedDocumentScanner';
+import { QuickCapture } from './QuickCapture';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { canManageAcademic } from '@/lib/rbac';
 
@@ -193,6 +194,15 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </Button>
+
+          {/* Quick Capture: 1-tap camera → compress → preview → upload */}
+          {canUpload && (
+            <QuickCapture
+              sessionId={sessionId}
+              courseId={courseId}
+              onSuccess={refetch}
+            />
+          )}
 
           {/* Ninja Upload Button */}
           {canUpload && (
