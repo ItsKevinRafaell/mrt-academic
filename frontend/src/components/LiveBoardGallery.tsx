@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Image as ImageIcon, X, Upload, Loader2, RefreshCw, GripVertical, Maximize2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,7 +67,11 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
     setUploadMode('form');
     setImageUrl(result.processedImageData || result.imageData);
     setOcrText(result.ocrText);
-    setTitle(`Board Photo - ${new Date().toLocaleTimeString('id-ID')}`);
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    setTitle(`${dateStr} ${timeStr} - Board Photo`);
+    setDialogOpen(true);
   };
 
   // Ninja Upload: Quick upload with camera on mobile
@@ -86,8 +90,11 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
       reader.onloadend = async () => {
         const base64Data = reader.result as string;
 
-        // Auto-generate title with timestamp
-        const autoTitle = `Board Photo - ${new Date().toLocaleTimeString('id-ID')}`;
+        // Auto-generate searchable title with date
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10);
+        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        const autoTitle = `${dateStr} ${timeStr} - Board Photo`;
 
         createMutation.mutate({
           session_id: sessionId,
@@ -290,7 +297,16 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
                           if (file) {
                             setSelectedFile(file)
                             const reader = new FileReader()
-                            reader.onloadend = () => setImageUrl(reader.result as string)
+                            reader.onloadend = () => {
+                              setImageUrl(reader.result as string)
+                              // Auto-title from filename
+                              const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '')
+                              if (!title) {
+                                const now = new Date()
+                                const dateStr = now.toISOString().slice(0, 10)
+                                setTitle(`${dateStr} ${nameWithoutExt}`)
+                              }
+                            }
                             reader.readAsDataURL(file)
                           }
                         }}

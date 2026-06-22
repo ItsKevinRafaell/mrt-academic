@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { useCawuStore } from "@/lib/stores/cawu-store";
 import { getIPKData } from "@/lib/api/ipk";
 import { saveGrade } from "@/lib/api/grades";
 import type { IPKData } from "@/types";
@@ -46,6 +47,7 @@ function getGradePoint(grade: string): number {
 
 export default function IPKPage() {
   const { role } = useAuthStore();
+  const { selectedCawu: topbarCawu } = useCawuStore();
   const [cawu, setCawu] = useState(1);
   const [ipkData, setIpkData] = useState<IPKData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,13 @@ export default function IPKPage() {
   const [viewMode, setViewMode] = useState<"detail" | "summary">("detail");
 
   const isAdmin = role === "SUPER_ADMIN" || role === "KURIKULUM";
+
+  // Sync with topbar cawu when available
+  useEffect(() => {
+    if (topbarCawu && topbarCawu.id !== cawu) {
+      setCawu(topbarCawu.id);
+    }
+  }, [topbarCawu]);
 
   useEffect(() => {
     loadData();
@@ -231,6 +240,11 @@ export default function IPKPage() {
         <Card className="md:col-span-1">
           <div className="p-4">
             <label className="text-sm font-medium mb-2 block">Catur Wulan</label>
+            {topbarCawu && cawu === topbarCawu.id && (
+              <p className="text-xs text-muted-foreground mb-2">
+                Mengikuti cawu di topbar
+              </p>
+            )}
             <Select value={String(cawu)} onValueChange={(v) => setCawu(Number(v))}>
               <SelectTrigger>
                 <SelectValue />

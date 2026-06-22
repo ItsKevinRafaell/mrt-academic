@@ -187,10 +187,15 @@ export default function MatkulDetailPage() {
   const handleCreateSession = async (topicId: number) => {
     if (!quickAddSessionTitle.trim()) return;
     const { createSession } = await import("@/lib/api/sessions");
+    // Compute next session number from all topics
+    const maxNum = topics.reduce((max, t) => {
+      const topicMax = t.sessions?.reduce((m, s) => Math.max(m, s.number || 0), 0) || 0;
+      return Math.max(max, topicMax);
+    }, 0);
     await createSession(matkulId, {
       title: quickAddSessionTitle,
       description: "",
-      number: 0,
+      number: maxNum + 1,
     });
     setQuickAddSessionTitle("");
     setShowQuickAddSession(null);
@@ -402,7 +407,7 @@ export default function MatkulDetailPage() {
                               className="flex items-center gap-2 flex-1"
                             >
                               <Badge variant="outline" className="text-xs shrink-0">
-                                Sesi {session.number > 0 ? session.number : index + 1}
+                                Sesi {session.number || index + 1}
                               </Badge>
                               <span className="font-medium text-sm">{session.title}</span>
                             </Link>

@@ -365,11 +365,13 @@ export default function SessionDetailPage() {
                     key={material.id}
                     className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 lg:p-4 rounded-xl border border-border hover:border-primary/50 hover:shadow-md transition-all group"
                   >
-                    <a
-                      href={material.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 lg:gap-4 flex-1"
+                    <button
+                      onClick={() => {
+                        if (material.url.startsWith('http')) {
+                          window.open(material.url, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                      className="flex items-center gap-3 lg:gap-4 flex-1 text-left"
                     >
                       <div
                         className={cn(
@@ -389,7 +391,7 @@ export default function SessionDetailPage() {
                           </p>
                         )}
                       </div>
-                    </a>
+                    </button>
                     <div className="flex items-center gap-2 self-end sm:self-auto">
                       <Badge variant="outline" className="text-xs capitalize">
                         {material.type}

@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createCourse, updateCourse } from "@/lib/api/courses";
-import type { Course } from "@/types";
+import { useCawuStore } from "@/lib/stores/cawu-store";
+import type { Course, CourseInput } from "@/types";
 
 interface CourseDialogProps {
   open: boolean;
@@ -16,12 +17,14 @@ interface CourseDialogProps {
 }
 
 export function CourseDialog({ open, onOpenChange, course, onSaved }: CourseDialogProps) {
+  const { selectedCawu } = useCawuStore();
   const [form, setForm] = useState({
     code: "",
     name: "",
     sks: 3,
     description: "",
     instructors: "",
+    contact: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -33,6 +36,7 @@ export function CourseDialog({ open, onOpenChange, course, onSaved }: CourseDial
         sks: course.sks,
         description: course.description || "",
         instructors: course.instructors?.join(", ") || "",
+        contact: "",
       });
     } else {
       setForm({
@@ -41,6 +45,7 @@ export function CourseDialog({ open, onOpenChange, course, onSaved }: CourseDial
         sks: 3,
         description: "",
         instructors: "",
+        contact: "",
       });
     }
   }, [course, open]);
@@ -49,7 +54,7 @@ export function CourseDialog({ open, onOpenChange, course, onSaved }: CourseDial
     e.preventDefault();
     setSaving(true);
     try {
-      const input = {
+      const input: CourseInput = {
         code: form.code,
         name: form.name,
         sks: form.sks,
@@ -57,6 +62,7 @@ export function CourseDialog({ open, onOpenChange, course, onSaved }: CourseDial
         instructors: form.instructors
           ? form.instructors.split(",").map((s) => s.trim())
           : [],
+        cawu_id: selectedCawu?.id,
       };
       if (course) {
         await updateCourse(course.id, input);
@@ -115,6 +121,14 @@ export function CourseDialog({ open, onOpenChange, course, onSaved }: CourseDial
               value={form.instructors}
               onChange={(e) => setForm({ ...form, instructors: e.target.value })}
               placeholder="Dr. Andi, Prof. Budi"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Kontak Dosen (opsional)</Label>
+            <Input
+              value={form.contact}
+              onChange={(e) => setForm({ ...form, contact: e.target.value })}
+              placeholder="email@dosen.ac.id / 0812..."
             />
           </div>
           <div className="space-y-2">

@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CawuManagementDialog } from "@/components/cawu-management-dialog";
 import type { Cawu } from "@/lib/api/cawu";
 
 export function CawuSwitcher() {
@@ -55,28 +56,33 @@ export function CawuSwitcher() {
 
   if (isLoading || cawus.length === 0) {
     return (
-      <div className="w-40 h-9 bg-muted animate-pulse rounded-lg" />
+      <div className="flex items-center gap-2">
+        <div className="w-40 h-9 bg-muted animate-pulse rounded-lg" />
+      </div>
     );
   }
 
   return (
-    <Select
-      value={selectedCawu?.id.toString()}
-      onValueChange={handleCawuChange}
-    >
-      <SelectTrigger className="w-auto min-w-[140px] border-0 bg-primary/5 hover:bg-primary/10 focus:ring-0 focus:ring-offset-0">
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
-          <SelectValue />
-        </div>
-      </SelectTrigger>
-      <SelectContent>
-        {cawus.map((cawu) => (
-          <SelectItem key={cawu.id} value={cawu.id.toString()}>
-            Cawu {cawu.semester}{cawu.is_active ? " (Aktif)" : ""}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex items-center gap-2">
+      <Select
+        value={selectedCawu?.id.toString()}
+        onValueChange={handleCawuChange}
+      >
+        <SelectTrigger className="w-auto min-w-[140px] border-0 bg-primary/5 hover:bg-primary/10 focus:ring-0 focus:ring-offset-0">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+            <SelectValue />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          {cawus.map((cawu) => (
+            <SelectItem key={cawu.id} value={cawu.id.toString()}>
+              Cawu {cawu.semester}{cawu.is_active ? " (Aktif)" : ""}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <CawuManagementDialog />
+    </div>
   );
 }
