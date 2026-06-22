@@ -30,7 +30,7 @@ func (h *MaterialRequestHandler) CreateRequest(w http.ResponseWriter, r *http.Re
 
 	req, err := h.useCase.CreateRequest(input)
 	if err != nil {
-		Error(w, http.StatusBadRequest, err.Error(), "ERR_VALIDATION")
+		Error(w, http.StatusBadRequest, "Failed to create material request", "ERR_VALIDATION")
 		return
 	}
 

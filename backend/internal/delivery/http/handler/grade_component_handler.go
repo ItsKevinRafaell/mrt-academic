@@ -47,7 +47,7 @@ func (h *GradeComponentHandler) CreateGradeComponent(w http.ResponseWriter, r *h
 
 	gc, err := h.usecase.Create(courseID, req.Name, req.Weight, req.Type)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -68,7 +68,7 @@ func (h *GradeComponentHandler) GetGradeComponentsByCourseID(w http.ResponseWrit
 
 	components, err := h.usecase.GetByCourseID(courseID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (h *GradeComponentHandler) UpdateGradeComponent(w http.ResponseWriter, r *h
 
 	gc, err := h.usecase.Update(id, req.Name, req.Weight, req.Type)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -115,7 +115,7 @@ func (h *GradeComponentHandler) DeleteGradeComponent(w http.ResponseWriter, r *h
 	}
 
 	if err := h.usecase.Delete(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"log"
 	"mrt-backend/internal/domain"
 )
 
@@ -10,6 +11,7 @@ type CourseUsecase struct {
 	sessionRepo  domain.SessionRepository
 	materialRepo domain.MaterialRepository
 	taskRepo     domain.TaskRepository
+	searchUC     *SearchUsecase
 }
 
 func NewCourseUsecase(
@@ -17,12 +19,22 @@ func NewCourseUsecase(
 	sessionRepo domain.SessionRepository,
 	materialRepo domain.MaterialRepository,
 	taskRepo domain.TaskRepository,
+	searchUC *SearchUsecase,
 ) *CourseUsecase {
 	return &CourseUsecase{
 		courseRepo:   courseRepo,
 		sessionRepo:  sessionRepo,
 		materialRepo: materialRepo,
 		taskRepo:     taskRepo,
+		searchUC:     searchUC,
+	}
+}
+
+func (uc *CourseUsecase) invalidateCache() {
+	if uc.searchUC != nil {
+		if err := uc.searchUC.InvalidateCache(); err != nil {
+			log.Printf("search cache invalidation failed: %v", err)
+		}
 	}
 }
 
@@ -30,7 +42,11 @@ func (uc *CourseUsecase) Create(ctx context.Context, c *domain.Course) error {
 	if c.Code == "" || c.Name == "" || c.SKS <= 0 {
 		return domain.ErrValidation
 	}
-	return uc.courseRepo.Create(c)
+	if err := uc.courseRepo.Create(c); err != nil {
+		return err
+	}
+	uc.invalidateCache()
+	return nil
 }
 
 func (uc *CourseUsecase) GetAll(ctx context.Context) ([]domain.Course, error) {
@@ -45,11 +61,19 @@ func (uc *CourseUsecase) Update(ctx context.Context, c *domain.Course) error {
 	if c.Code == "" || c.Name == "" || c.SKS <= 0 {
 		return domain.ErrValidation
 	}
-	return uc.courseRepo.Update(c)
+	if err := uc.courseRepo.Update(c); err != nil {
+		return err
+	}
+	uc.invalidateCache()
+	return nil
 }
 
 func (uc *CourseUsecase) Delete(ctx context.Context, id int) error {
-	return uc.courseRepo.Delete(id)
+	if err := uc.courseRepo.Delete(id); err != nil {
+		return err
+	}
+	uc.invalidateCache()
+	return nil
 }
 
 func (uc *CourseUsecase) CreateSession(ctx context.Context, s *domain.Session) error {
@@ -59,7 +83,11 @@ func (uc *CourseUsecase) CreateSession(ctx context.Context, s *domain.Session) e
 	if _, err := uc.courseRepo.GetByID(s.CourseID); err != nil {
 		return err
 	}
-	return uc.sessionRepo.Create(s)
+	if err := uc.sessionRepo.Create(s); err != nil {
+		return err
+	}
+	uc.invalidateCache()
+	return nil
 }
 
 func (uc *CourseUsecase) GetSessions(ctx context.Context, courseID int) ([]domain.Session, error) {
@@ -77,11 +105,19 @@ func (uc *CourseUsecase) UpdateSession(ctx context.Context, s *domain.Session) e
 	if s.Title == "" || s.Number <= 0 {
 		return domain.ErrValidation
 	}
-	return uc.sessionRepo.Update(s)
+	if err := uc.sessionRepo.Update(s); err != nil {
+		return err
+	}
+	uc.invalidateCache()
+	return nil
 }
 
 func (uc *CourseUsecase) DeleteSession(ctx context.Context, id int) error {
-	return uc.sessionRepo.Delete(id)
+	if err := uc.sessionRepo.Delete(id); err != nil {
+		return err
+	}
+	uc.invalidateCache()
+	return nil
 }
 
 func (uc *CourseUsecase) GetMaterialsByCourse(ctx context.Context, courseID int) ([]domain.SessionWithMaterials, error) {
@@ -129,7 +165,11 @@ func (uc *CourseUsecase) CreateTask(ctx context.Context, t *domain.Task) error {
 	if _, err := uc.courseRepo.GetByID(t.CourseID); err != nil {
 		return err
 	}
-	return uc.taskRepo.Create(t)
+	if err := uc.taskRepo.Create(t); err != nil {
+		return err
+	}
+	uc.invalidateCache()
+	return nil
 }
 
 func (uc *CourseUsecase) GetTasks(ctx context.Context, courseID int) ([]domain.Task, error) {
@@ -143,11 +183,19 @@ func (uc *CourseUsecase) UpdateTask(ctx context.Context, t *domain.Task) error {
 	if t.Title == "" || t.Deadline.IsZero() {
 		return domain.ErrValidation
 	}
-	return uc.taskRepo.Update(t)
+	if err := uc.taskRepo.Update(t); err != nil {
+		return err
+	}
+	uc.invalidateCache()
+	return nil
 }
 
 func (uc *CourseUsecase) DeleteTask(ctx context.Context, id int) error {
-	return uc.taskRepo.Delete(id)
+	if err := uc.taskRepo.Delete(id); err != nil {
+		return err
+	}
+	uc.invalidateCache()
+	return nil
 }
 
 func (uc *CourseUsecase) UpdateTaskProgress(ctx context.Context, p *domain.TaskProgress) error {

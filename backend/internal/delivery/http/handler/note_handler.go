@@ -40,7 +40,7 @@ func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	note, err := h.usecase.CreateNote(userID, req.Title, req.Content, req.CourseID, req.SessionID, req.Tags)
 	if err != nil {
-		Error(w, http.StatusInternalServerError, err.Error(), "ERR_INTERNAL_SERVER")
+		Error(w, http.StatusInternalServerError, "Internal server error", "ERR_INTERNAL_SERVER")
 		return
 	}
 	Success(w, http.StatusCreated, "Note created", note)
@@ -66,7 +66,7 @@ func (h *NoteHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		sessionID, _ := strconv.Atoi(sessionIDStr)
 		result, err := h.usecase.GetNotesBySession(userID, sessionID)
 		if err != nil {
-			Error(w, http.StatusInternalServerError, err.Error(), "ERR_INTERNAL_SERVER")
+			Error(w, http.StatusInternalServerError, "Internal server error", "ERR_INTERNAL_SERVER")
 			return
 		}
 		for _, n := range result {
@@ -85,7 +85,7 @@ func (h *NoteHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		_, _ = strconv.Atoi(courseIDStr)
 		result, err := h.usecase.GetAllNotes(userID)
 		if err != nil {
-			Error(w, http.StatusInternalServerError, err.Error(), "ERR_INTERNAL_SERVER")
+			Error(w, http.StatusInternalServerError, "Internal server error", "ERR_INTERNAL_SERVER")
 			return
 		}
 		for _, n := range result {
@@ -103,7 +103,7 @@ func (h *NoteHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	} else {
 		result, err := h.usecase.GetAllNotes(userID)
 		if err != nil {
-			Error(w, http.StatusInternalServerError, err.Error(), "ERR_INTERNAL_SERVER")
+			Error(w, http.StatusInternalServerError, "Internal server error", "ERR_INTERNAL_SERVER")
 			return
 		}
 		for _, n := range result {
@@ -132,7 +132,7 @@ func (h *NoteHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	note, err := h.usecase.UpdateNote(userID, id, req.Title, req.Content, req.Tags)
 	if err != nil {
-		Error(w, http.StatusInternalServerError, err.Error(), "ERR_INTERNAL_SERVER")
+		Error(w, http.StatusInternalServerError, "Internal server error", "ERR_INTERNAL_SERVER")
 		return
 	}
 	Success(w, http.StatusOK, "Note updated", note)
@@ -142,7 +142,7 @@ func (h *NoteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r.Context())
 	id := r.PathValue("id")
 	if err := h.usecase.DeleteNote(userID, id); err != nil {
-		Error(w, http.StatusInternalServerError, err.Error(), "ERR_INTERNAL_SERVER")
+		Error(w, http.StatusInternalServerError, "Internal server error", "ERR_INTERNAL_SERVER")
 		return
 	}
 	Success(w, http.StatusOK, "Note deleted", nil)

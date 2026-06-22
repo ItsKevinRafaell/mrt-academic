@@ -32,7 +32,7 @@ func (h *CawuHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.cawuUsecase.CreateCawu(&cawu); err != nil {
-		respondError(w, http.StatusInternalServerError, "create_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "create_failed", "Failed to create cawu")
 		return
 	}
 
@@ -42,7 +42,7 @@ func (h *CawuHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *CawuHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	cawus, err := h.cawuUsecase.GetAllCawus()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch cawu")
 		return
 	}
 	respondJSON(w, http.StatusOK, cawus)
@@ -58,7 +58,7 @@ func (h *CawuHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	cawu, err := h.cawuUsecase.GetCawuByID(id)
 	if err != nil {
-		respondError(w, http.StatusNotFound, "not_found", err.Error())
+		respondError(w, http.StatusNotFound, "not_found", "Cawu not found")
 		return
 	}
 	respondJSON(w, http.StatusOK, cawu)
@@ -67,7 +67,7 @@ func (h *CawuHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *CawuHandler) GetActive(w http.ResponseWriter, r *http.Request) {
 	cawu, err := h.cawuUsecase.GetActiveCawu()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch cawu")
 		return
 	}
 	if cawu == nil {
@@ -92,7 +92,7 @@ func (h *CawuHandler) SetActive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.cawuUsecase.SetActiveCawu(id); err != nil {
-		respondError(w, http.StatusInternalServerError, "update_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "update_failed", "Failed to update cawu")
 		return
 	}
 
@@ -121,7 +121,7 @@ func (h *CawuHandler) Update(w http.ResponseWriter, r *http.Request) {
 	cawu.ID = id
 
 	if err := h.cawuUsecase.UpdateCawu(&cawu); err != nil {
-		respondError(w, http.StatusInternalServerError, "update_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "update_failed", "Failed to update cawu")
 		return
 	}
 
@@ -143,7 +143,7 @@ func (h *CawuHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.cawuUsecase.DeleteCawu(id); err != nil {
-		respondError(w, http.StatusInternalServerError, "delete_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "delete_failed", "Failed to delete cawu")
 		return
 	}
 
@@ -161,7 +161,7 @@ func (h *CawuHandler) FilterCourses(w http.ResponseWriter, r *http.Request) {
 	// Verify cawu exists
 	_, err = h.cawuUsecase.GetCawuByID(cawuID)
 	if err != nil {
-		respondError(w, http.StatusNotFound, "not_found", err.Error())
+		respondError(w, http.StatusNotFound, "not_found", "Cawu not found")
 		return
 	}
 

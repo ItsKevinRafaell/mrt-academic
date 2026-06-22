@@ -24,6 +24,7 @@ type Router struct {
 	eventUsecase            *usecase.EventUsecase
 	dashboardUsecase        *usecase.DashboardUsecase
 	searchUsecase           *usecase.SearchUsecase
+	compressionMiddleware   *middleware.CompressionMiddleware
 	questionUsecase         domain.QuestionUseCase
 	topicUsecase            *usecase.TopicUseCase
 	excelUsecase            *usecase.ExcelUsecase
@@ -36,6 +37,7 @@ type Router struct {
 	materialRequestUsecase   *usecase.MaterialRequestUseCase
 	authMiddleware          *middleware.AuthMiddleware
 	corsMiddleware          *middleware.CORSMiddleware
+	rateLimiter             *middleware.RateLimiter
 }
 
 func NewRouter(db *sql.DB, jwtSecret string) *Router {
@@ -63,13 +65,13 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 
 	authUsecase := usecase.NewAuthUsecase(userRepo, userRoleRepo, jwtSecret)
 	userUsecase := usecase.NewUserUseCase(userRepo, userRoleRepo)
-	courseUsecase := usecase.NewCourseUsecase(courseRepo, sessionRepo, materialRepo, taskRepo)
+	searchUsecase := usecase.NewSearchUsecase(searchRepo, 5*time.Minute)
+	courseUsecase := usecase.NewCourseUsecase(courseRepo, sessionRepo, materialRepo, taskRepo, searchUsecase)
 	taskUsecase := usecase.NewTaskUseCase(taskRepo)
 	gradeUsecase := usecase.NewGradeUsecase(gradeRepo)
 	gradeComponentUsecase := usecase.NewGradeComponentUsecase(gradeComponentRepo)
 	eventUsecase := usecase.NewEventUsecase(eventRepo)
 	dashboardUsecase := usecase.NewDashboardUsecase(dashboardRepo)
-	searchUsecase := usecase.NewSearchUsecase(searchRepo, 5*time.Minute)
 	questionUsecase := usecase.NewQuestionUsecase(questionRepo, examSubmissionRepo)
 	topicUsecase := usecase.NewTopicUseCase(topicRepo, sessionRepo, materialRepo)
 	excelUsecase := usecase.NewExcelUsecase(courseRepo, sessionRepo, materialRepo, gradeUsecase)
@@ -107,8 +109,10 @@ func NewRouter(db *sql.DB, jwtSecret string) *Router {
 		bankSoalUsecase:        bankSoalUsecase,
 		fonnteService:          fonnteService,
 		materialRequestUsecase: materialRequestUsecase,
-		authMiddleware:        middleware.NewAuthMiddleware(authUsecase),
-		corsMiddleware:        middleware.NewCORSMiddleware(),
+		authMiddleware:         middleware.NewAuthMiddleware(authUsecase),
+		corsMiddleware:         middleware.NewCORSMiddleware(),
+		rateLimiter:            middleware.NewRateLimiter(),
+		compressionMiddleware:  middleware.NewCompressionMiddleware(),
 	}
 }
 
@@ -307,5 +311,5 @@ func (r *Router) Setup() {
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.corsMiddleware.Handle(r.mux).ServeHTTP(w, req)
+	r.compressionMiddleware.Handle(r.rateLimiter.Handle(r.corsMiddleware.Handle(r.mux))).ServeHTTP(w, req)
 }

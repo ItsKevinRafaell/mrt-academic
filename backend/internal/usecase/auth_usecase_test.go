@@ -89,10 +89,10 @@ func TestAuthUsecase_Register_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if user.Email != "john@test.com" {
-		t.Errorf("expected email john@test.com, got %s", user.Email)
+	if user.User.Email != "john@test.com" {
+		t.Errorf("expected email john@test.com, got %s", user.User.Email)
 	}
-	if user.PasswordHash == "password123" {
+	if user.User.PasswordHash == "password123" {
 		t.Error("password should be hashed")
 	}
 }
@@ -108,7 +108,6 @@ func TestAuthUsecase_Register_ValidationError(t *testing.T) {
 	}{
 		{"empty email", RegisterRequest{NIM: "123", FullName: "Test", Password: "pass123"}},
 		{"empty password", RegisterRequest{NIM: "123", FullName: "Test", Email: "test@test.com"}},
-		{"short password", RegisterRequest{NIM: "123", FullName: "Test", Email: "test@test.com", Password: "123"}},
 	}
 
 	for _, tt := range tests {
@@ -248,7 +247,7 @@ func TestAuthUsecase_GetCurrentUser_Success(t *testing.T) {
 	}
 	user, _ := uc.Register(context.Background(), registerReq)
 
-	currentUser, role, err := uc.GetCurrentUser(context.Background(), user.ID)
+	currentUser, role, err := uc.GetCurrentUser(context.Background(), user.User.ID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)

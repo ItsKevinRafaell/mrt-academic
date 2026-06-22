@@ -45,7 +45,7 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	event, err := h.eventUsecase.CreateEvent(req.Title, req.Description, req.EventType, eventDate)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "create_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "create_failed", "Failed to create event")
 		return
 	}
 
@@ -55,7 +55,7 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *EventHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	events, err := h.eventUsecase.GetAllEvents()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch events")
 		return
 	}
 
@@ -65,7 +65,7 @@ func (h *EventHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 func (h *EventHandler) GetUpcoming(w http.ResponseWriter, r *http.Request) {
 	events, err := h.eventUsecase.GetUpcomingEvents()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch events")
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	err = h.eventUsecase.UpdateEvent(id, req.Title, req.Description, req.EventType, eventDate)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "update_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "update_failed", "Failed to update event")
 		return
 	}
 
@@ -140,7 +140,7 @@ func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	err = h.eventUsecase.DeleteEvent(id)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "delete_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "delete_failed", "Failed to delete event")
 		return
 	}
 

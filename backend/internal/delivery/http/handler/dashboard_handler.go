@@ -23,7 +23,7 @@ func (h *DashboardHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 
 	summary, err := h.dashboardUsecase.GetSummary(userID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch dashboard summary")
 		return
 	}
 

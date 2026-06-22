@@ -26,7 +26,7 @@ type ScheduleRequest struct {
 func (h *ScheduleHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	schedules, err := h.scheduleUsecase.GetAll()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch schedules")
 		return
 	}
 
@@ -43,7 +43,7 @@ func (h *ScheduleHandler) GetByCourseID(w http.ResponseWriter, r *http.Request) 
 
 	schedules, err := h.scheduleUsecase.GetByCourseID(courseID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch schedules")
 		return
 	}
 
@@ -70,7 +70,7 @@ func (h *ScheduleHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *ScheduleHandler) GetActive(w http.ResponseWriter, r *http.Request) {
 	schedules, err := h.scheduleUsecase.GetActive()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch schedules")
 		return
 	}
 
@@ -86,7 +86,7 @@ func (h *ScheduleHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	schedule, err := h.scheduleUsecase.Create(req.CourseID, req.DayOfWeek, req.StartTime, req.EndTime, req.SessionID)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "create_failed", err.Error())
+		respondError(w, http.StatusBadRequest, "create_failed", "Failed to create schedule")
 		return
 	}
 
@@ -109,7 +109,7 @@ func (h *ScheduleHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	err = h.scheduleUsecase.Update(id, req.CourseID, req.DayOfWeek, req.StartTime, req.EndTime, req.SessionID)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "update_failed", err.Error())
+		respondError(w, http.StatusBadRequest, "update_failed", "Failed to update schedule")
 		return
 	}
 
@@ -126,7 +126,7 @@ func (h *ScheduleHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	err = h.scheduleUsecase.Delete(id)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "delete_failed", err.Error())
+		respondError(w, http.StatusInternalServerError, "delete_failed", "Failed to delete schedule")
 		return
 	}
 
