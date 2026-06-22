@@ -309,24 +309,26 @@ export default function MatkulDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-          <TabsTrigger value="materi" className="gap-1 sm:gap-2 text-xs sm:text-sm">
-            <BookOpen className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Materi</span>
-          </TabsTrigger>
-          <TabsTrigger value="tugas" className="gap-1 sm:gap-2 text-xs sm:text-sm">
-            <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Tugas</span>
-          </TabsTrigger>
-          <TabsTrigger value="bank-soal" className="gap-1 sm:gap-2 text-xs sm:text-sm">
-            <HelpCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Bank Soal</span>
-          </TabsTrigger>
-          <TabsTrigger value="nilai" className="gap-1 sm:gap-2 text-xs sm:text-sm">
-            <Calculator className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Nilai</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="relative">
+          <TabsList className="w-full inline-flex gap-1 p-1 h-auto bg-muted rounded-lg overflow-x-auto scrollbar-none">
+            <TabsTrigger value="materi" className="flex items-center gap-1 px-3 py-1.5 text-xs whitespace-nowrap data-[state=active]:bg-background">
+              <BookOpen className="h-3.5 w-3.5" />
+              Materi
+            </TabsTrigger>
+            <TabsTrigger value="tugas" className="flex items-center gap-1 px-3 py-1.5 text-xs whitespace-nowrap data-[state=active]:bg-background">
+              <ClipboardList className="h-3.5 w-3.5" />
+              Tugas
+            </TabsTrigger>
+            <TabsTrigger value="bank-soal" className="flex items-center gap-1 px-3 py-1.5 text-xs whitespace-nowrap data-[state=active]:bg-background">
+              <HelpCircle className="h-3.5 w-3.5" />
+              Bank Soal
+            </TabsTrigger>
+            <TabsTrigger value="nilai" className="flex items-center gap-1 px-3 py-1.5 text-xs whitespace-nowrap data-[state=active]:bg-background">
+              <Calculator className="h-3.5 w-3.5" />
+              Nilai
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Materi Tab */}
         <TabsContent value="materi" className="mt-4">

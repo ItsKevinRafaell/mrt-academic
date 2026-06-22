@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Image as ImageIcon, X, Upload, Loader2, RefreshCw, GripVertical, ChevronLeft, ChevronRight, Maximize2, Zap } from 'lucide-react';
+import { Image as ImageIcon, X, Upload, Loader2, RefreshCw, GripVertical, Maximize2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -168,11 +168,13 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ImageIcon className="w-5 h-5" />
-          Live Board Gallery
-          <Badge variant="secondary" className="ml-2">
+      <CardHeader className="p-4 lg:p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5" />
+            <span className="text-base lg:text-lg font-semibold">Live Board Gallery</span>
+          </div>
+          <Badge variant="secondary" className="ml-auto lg:ml-0">
             {items.length} photos
           </Badge>
           <Button
@@ -180,7 +182,7 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
             size="icon"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="ml-auto"
+            className="h-8 w-8"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </Button>
@@ -203,11 +205,11 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
                 disabled={uploading}
               >
                 {uploading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Zap className="w-4 h-4 mr-2" />
+                  <Zap className="w-4 h-4" />
                 )}
-                Quick Photo
+                <span className="hidden sm:inline ml-1">Quick Photo</span>
               </Button>
             </>
           )}
@@ -216,8 +218,9 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
             <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
               <DialogTrigger asChild>
                 <Button size="sm">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Add Photo
+                  <Upload className="w-4 h-4 mr-1" />
+                  <span className="hidden sm:inline">Add Photo</span>
+                  <span className="sm:hidden">Add</span>
                 </Button>
               </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -348,105 +351,75 @@ export function LiveBoardGallery({ sessionId, courseId }: LiveBoardGalleryProps)
             </DialogContent>
             </Dialog>
           )}
-        </CardTitle>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 lg:p-6">
         {items.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-8 lg:py-12 text-muted-foreground">
             <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">No board photos yet</p>
+            <p className="text-base lg:text-lg font-medium">No board photos yet</p>
             <p className="text-sm">Upload photos to share with the class</p>
           </div>
         ) : (
-          <div className="relative">
-            {/* Horizontal Carousel Container */}
-            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-              <div className="flex gap-4 pb-4">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="relative group flex-shrink-0 w-64 aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105"
-                    onClick={() => setSelectedItem(item)}
-                  >
-                    <img
-                      src={item.image_url}
-                      alt={item.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover"
-                    />
+          <div>
+            {/* Grid for mobile, scrollable row for larger screens */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="relative group aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-[1.02]"
+                  onClick={() => setSelectedItem(item)}
+                >
+                  <img
+                    src={item.image_url}
+                    alt={item.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
 
-                    {/* Overlay with info */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className="text-white text-sm font-medium truncate">
-                          {item.title}
-                        </p>
-                        <p className="text-white/70 text-xs">
-                          {new Date(item.created_at).toLocaleString('id-ID')}
-                        </p>
-                      </div>
+                  {/* Overlay with info */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-white text-sm font-medium truncate">
+                        {item.title}
+                      </p>
+                      <p className="text-white/70 text-xs">
+                        {new Date(item.created_at).toLocaleString('id-ID')}
+                      </p>
                     </div>
-
-                    {/* Expand icon */}
-                    <div className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Maximize2 className="w-4 h-4" />
-                    </div>
-
-                    {/* Delete button */}
-                    {canUpload && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(item.id);
-                        }}
-                        className="absolute top-2 left-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-
-                    {/* OCR indicator */}
-                    {item.ocr_text && (
-                      <Badge
-                        variant="secondary"
-                        className="absolute top-2 right-10 text-xs bg-blue-500 text-white"
-                      >
-                        OCR
-                      </Badge>
-                    )}
                   </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Navigation Arrows */}
-            {items.length > 4 && (
-              <>
-                <button
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all hover:scale-110"
-                  onClick={() => {
-                    const container = document.querySelector('.overflow-x-auto');
-                    if (container) {
-                      container.scrollBy({ left: -300, behavior: 'smooth' });
-                    }
-                  }}
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all hover:scale-110"
-                  onClick={() => {
-                    const container = document.querySelector('.overflow-x-auto');
-                    if (container) {
-                      container.scrollBy({ left: 300, behavior: 'smooth' });
-                    }
-                  }}
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
-            )}
+                  {/* Expand icon */}
+                  <div className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Maximize2 className="w-4 h-4" />
+                  </div>
+
+                  {/* Delete button */}
+                  {canUpload && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(item.id);
+                      }}
+                      className="absolute top-2 left-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {/* OCR indicator */}
+                  {item.ocr_text && (
+                    <Badge
+                      variant="secondary"
+                      className="absolute top-2 right-10 text-xs bg-blue-500 text-white"
+                    >
+                      OCR
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>
