@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, BookOpen, Calendar, Tag, Edit2, ChevronLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import {
   getAllNotes,
   createNote,
@@ -18,9 +18,10 @@ import {
 interface NotesPageProps {
   courseId?: number;
   sessionId?: number;
+  topikId?: number;
 }
 
-export function NotesPage({ courseId, sessionId }: NotesPageProps) {
+export function NotesPage({ courseId, sessionId, topikId }: NotesPageProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [editing, setEditing] = useState(false);
@@ -307,11 +308,11 @@ export function NotesPage({ courseId, sessionId }: NotesPageProps) {
             onChange={(e) => setEditTags(e.target.value)}
             placeholder="Tags (pisah koma): kuliah, matematika, ..."
           />
-          <Textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            placeholder="Tulis catatan di sini...\n\nGunakan markdown-like syntax:\n# Heading\n## Subheading\n- Bullet point\n**Bold**\n*Italic*"
-            className="min-h-[60vh] font-mono text-sm leading-relaxed"
+          <RichTextEditor
+            content={editContent}
+            onChange={setEditContent}
+            placeholder="Tulis catatan di sini..."
+            className="min-h-[400px]"
           />
         </div>
       ) : (
@@ -326,15 +327,10 @@ export function NotesPage({ courseId, sessionId }: NotesPageProps) {
               ))}
             </div>
           )}
-          <div className="prose prose-sm max-w-none">
-            <div className="whitespace-pre-wrap text-sm leading-relaxed">
-              {selectedNote?.content || (
-                <span className="text-muted-foreground italic">
-                  Belum ada isi. Klik Edit untuk mulai menulis.
-                </span>
-              )}
-            </div>
-          </div>
+          <div
+            className="prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ __html: selectedNote?.content || '<p class="text-muted-foreground italic">Belum ada isi. Klik Edit untuk mulai menulis.</p>' }}
+          />
           <div className="text-xs text-muted-foreground pt-4 border-t">
             Dibuat: {new Date(selectedNote?.created_at || '').toLocaleString('id-ID')}
             {' • '}

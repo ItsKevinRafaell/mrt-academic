@@ -1,0 +1,30 @@
+"use client";
+
+import * as React from "react";
+import * as TogglePrimitive from "@radix-ui/react-toggle";
+import { cn } from "@/lib/utils";
+
+const Toggle = React.forwardRef<
+  React.ElementRef<typeof TogglePrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root> & {
+    variant?: "default" | "outline";
+    size?: "default" | "sm" | "lg";
+  }
+>(({ className, variant = "default", size = "default", ...props }, ref) => (
+  <TogglePrimitive.Root
+    ref={ref}
+    className={cn(
+      "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+      variant === "default" && "bg-transparent",
+      variant === "outline" && "border border-input bg-transparent hover:bg-accent hover:text-accent-foreground",
+      size === "default" && "h-9 px-3",
+      size === "sm" && "h-8 px-2",
+      size === "lg" && "h-10 px-4",
+      className
+    )}
+    {...props}
+  />
+));
+Toggle.displayName = TogglePrimitive.Root.displayName;
+
+export { Toggle };

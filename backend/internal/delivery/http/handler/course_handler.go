@@ -341,6 +341,49 @@ func (h *CourseHandler) DeleteMaterial(w http.ResponseWriter, r *http.Request) {
 	Success(w, http.StatusOK, "Material deleted", nil)
 }
 
+func (h *CourseHandler) GetMaterialsByTopic(w http.ResponseWriter, r *http.Request) {
+	topicID, err := parsePathParam(r, "topic_id")
+	if err != nil {
+		Error(w, http.StatusBadRequest, "Invalid topic ID", "ERR_VALIDATION")
+		return
+	}
+
+	materials, err := h.courseUsecase.GetMaterialsByTopic(r.Context(), topicID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	Success(w, http.StatusOK, "Materials retrieved", materials)
+}
+
+func (h *CourseHandler) CreateMaterialForTopic(w http.ResponseWriter, r *http.Request) {
+	topicID, err := parsePathParam(r, "topic_id")
+	if err != nil {
+		Error(w, http.StatusBadRequest, "Invalid topic ID", "ERR_VALIDATION")
+		return
+	}
+
+	var req MaterialRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		Error(w, http.StatusBadRequest, "Invalid request body", "ERR_VALIDATION")
+		return
+	}
+
+	material := &domain.Material{
+		TopicID:     &topicID,
+		Title:       req.Title,
+		Description: req.Description,
+		Type:        req.Type,
+		URL:         req.URL,
+	}
+
+	if err := h.courseUsecase.CreateMaterialForTopic(r.Context(), material); err != nil {
+		handleError(w, err)
+		return
+	}
+	Success(w, http.StatusCreated, "Material created", material)
+}
+
 type TaskRequest struct {
 	CourseID    int    `json:"course_id"`
 	Title       string `json:"title"`

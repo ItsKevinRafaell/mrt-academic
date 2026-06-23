@@ -137,6 +137,20 @@ func (uc *CourseUsecase) UpdateMaterial(ctx context.Context, m *domain.Material)
 	return uc.materialRepo.Update(m)
 }
 
+func (uc *CourseUsecase) GetMaterialsByTopic(ctx context.Context, topicID int) ([]domain.Material, error) {
+	return uc.materialRepo.GetByTopicID(topicID)
+}
+
+func (uc *CourseUsecase) CreateMaterialForTopic(ctx context.Context, m *domain.Material) error {
+	if m.Title == "" || m.Type == "" || m.URL == "" {
+		return domain.ErrValidation
+	}
+	if m.TopicID == nil {
+		return domain.ErrValidation
+	}
+	return uc.materialRepo.Create(m)
+}
+
 func (uc *CourseUsecase) DeleteMaterial(ctx context.Context, id int) error {
 	return uc.materialRepo.Delete(id)
 }

@@ -170,9 +170,10 @@ export function TaskDrawer({ open, onClose, task, onToggleComplete }: TaskDrawer
             {/* Description */}
             <div className="space-y-2">
               <div className="text-sm font-medium text-foreground">Description</div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {task.description}
-              </p>
+              <div
+                className="prose prose-sm max-w-none prose-ul:my-1 prose-ol:my-1 prose-li:text-sm prose-li:leading-tight prose-li:py-0 text-muted-foreground"
+                dangerouslySetInnerHTML={{ __html: task.description || "" }}
+              />
             </div>
 
             {/* Submission Link */}

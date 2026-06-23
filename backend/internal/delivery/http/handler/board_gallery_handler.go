@@ -75,6 +75,23 @@ func (h *BoardGalleryHandler) GetBySessionID(w http.ResponseWriter, r *http.Requ
 	respondJSON(w, http.StatusOK, items)
 }
 
+func (h *BoardGalleryHandler) GetPhotosByTopic(w http.ResponseWriter, r *http.Request) {
+	topicIDStr := r.PathValue("topic_id")
+	topicID, err := strconv.Atoi(topicIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_topic_id", "Invalid topic ID")
+		return
+	}
+
+	items, err := h.boardGalleryUsecase.GetByTopicID(context.Background(), topicID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch photos")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, items)
+}
+
 func (h *BoardGalleryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)

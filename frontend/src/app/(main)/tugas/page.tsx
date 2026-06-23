@@ -18,11 +18,13 @@ import { useCourses } from "@/lib/api/courses";
 import { updateTaskProgress, type TaskWithProgress } from "@/lib/api/tasks";
 import { useCawuStore } from "@/lib/stores/cawu-store";
 import { TaskModal } from "@/components/tugas/task-modal";
+import { useConfirm, ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function TasksPage() {
   const router = useRouter();
   const { selectedCawu } = useCawuStore();
   const { data: courses = [] } = useCourses();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [allTasks, setAllTasks] = useState<TaskWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<"all" | "completed" | "pending">("all");
@@ -50,19 +52,26 @@ export default function TasksPage() {
   };
 
   const handleToggle = async (taskId: number, completed: boolean) => {
-    try {
-      await updateTaskProgress(taskId, completed);
-      setAllTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId
-            ? { ...t, progress: { user_id: "", task_id: taskId, completed } }
-            : t
-        )
-      );
-    } catch (error) {
-      console.error("Failed to toggle task:", error);
-      alert("Gagal mengubah status tugas");
-    }
+    await confirm({
+      title: completed ? "Tandai Selesai?" : "Tandai Belum Selesai?",
+      description: `Status tugas akan diubah menjadi ${completed ? "selesai" : "belum selesai"}.`,
+      confirmText: completed ? "Selesai" : "Belum Selesai",
+      onConfirm: async () => {
+        try {
+          await updateTaskProgress(taskId, completed);
+          setAllTasks((prev) =>
+            prev.map((t) =>
+              t.id === taskId
+                ? { ...t, progress: { user_id: "", task_id: taskId, completed } }
+                : t
+            )
+          );
+        } catch (error) {
+          console.error("Failed to toggle task:", error);
+          alert("Gagal mengubah status tugas");
+        }
+      },
+    });
   };
 
   // Filter tasks
@@ -165,8 +174,8 @@ export default function TasksPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="deadline-asc">Deadline ↑</SelectItem>
-              <SelectItem value="deadline-desc">Deadline ↓</SelectItem>
+              <SelectItem value="deadline-asc">Terdekat</SelectItem>
+              <SelectItem value="deadline-desc">Terjauh</SelectItem>
               <SelectItem value="name">Nama A-Z</SelectItem>
             </SelectContent>
           </Select>
@@ -190,8 +199,9 @@ export default function TasksPage() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-4 w-full">
                   <button
-                    onClick={() => handleToggle(task.id, true)}
-                    className="h-11 w-11 rounded-full border-2 border-muted-foreground hover:border-green-500 hover:bg-green-500/10 transition-colors shrink-0"
+                    onClick={(e) => { e.stopPropagation(); handleToggle(task.id, true); }}
+                    className="h-7 w-7 rounded-md border-2 border-muted-foreground/40 hover:border-green-500 hover:bg-green-500/10 transition-colors shrink-0 flex items-center justify-center"
+                    aria-label="Tandai selesai"
                   />
                   <div className="flex-1 min-w-0" onClick={() => setSelectedTask(task)}>
                     <div className="flex items-center gap-2">
@@ -244,10 +254,11 @@ export default function TasksPage() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={() => handleToggle(task.id, false)}
-                    className="h-11 w-11 rounded-full bg-green-500 border-2 border-green-500 hover:border-muted-foreground hover:bg-transparent transition-colors shrink-0 flex items-center justify-center"
+                    onClick={(e) => { e.stopPropagation(); handleToggle(task.id, false); }}
+                    className="h-7 w-7 rounded-md bg-green-500 border-2 border-green-500 hover:border-muted-foreground/40 hover:bg-transparent transition-colors shrink-0 flex items-center justify-center"
+                    aria-label="Tandai belum selesai"
                   >
-                    <CheckCircle2 className="h-4 w-4 text-white" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                   </button>
                   <div className="flex-1 min-w-0" onClick={() => setSelectedTask(task)}>
                     <p className="font-medium line-through text-muted-foreground">{task.title}</p>
@@ -307,6 +318,8 @@ export default function TasksPage() {
           onToggleComplete={(id, completed) => handleToggle(id, completed)}
         />
       )}
+
+      <ConfirmDialog />
     </div>
   );
 }

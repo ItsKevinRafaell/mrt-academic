@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useCawuStore } from "@/lib/stores/cawu-store";
-import { getIPKData } from "@/lib/api/ipk";
-import { saveGrade } from "@/lib/api/grades";
-import type { IPKData } from "@/types";
+import { getCourses } from "@/lib/api/courses";
+import { getGradeComponents, getGradesForCourse, saveGrade } from "@/lib/api/grades";
+import type { IPKData, Course } from "@/types";
+import type { GradeComponent } from "@/lib/api/grades";
 
 // Grade mapping with colors
 const GRADE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -47,8 +48,8 @@ function getGradePoint(grade: string): number {
 
 export default function IPKPage() {
   const { role } = useAuthStore();
-  const { selectedCawu: topbarCawu } = useCawuStore();
-  const [cawu, setCawu] = useState(1);
+  const { selectedCawu, cawus } = useCawuStore();
+  const [cawu, setCawu] = useState<number>(selectedCawu?.id ?? 1);
   const [ipkData, setIpkData] = useState<IPKData[]>([]);
   const [loading, setLoading] = useState(true);
   const [localScores, setLocalScores] = useState<Record<string, number>>({});
@@ -56,85 +57,63 @@ export default function IPKPage() {
   const [viewMode, setViewMode] = useState<"detail" | "summary">("detail");
 
   const isAdmin = role === "SUPER_ADMIN" || role === "KURIKULUM";
+  const activeCawuId = selectedCawu?.id ?? cawu;
+  console.log("[IPK] selectedCawu:", selectedCawu?.id, "cawu:", cawu, "activeCawuId:", activeCawuId);
 
-  // Sync with topbar cawu when available
+  // Sync local cawu state with topbar whenever topbar changes
   useEffect(() => {
-    if (topbarCawu && topbarCawu.id !== cawu) {
-      setCawu(topbarCawu.id);
+    if (selectedCawu?.id) {
+      setCawu((prev) => {
+        if (prev === 1 || prev === selectedCawu.id) {
+          return selectedCawu.id;
+        }
+        return prev;
+      });
     }
-  }, [topbarCawu]);
+  }, [selectedCawu?.id]);
 
   useEffect(() => {
     loadData();
-  }, [cawu]);
+  }, [activeCawuId]);
 
   async function loadData() {
     setLoading(true);
     try {
-      const data = await getIPKData(cawu);
-      setIpkData(data || []);
+      const courses = await getCourses();
+      const filteredCourses = courses.filter(c => c.cawu_id === activeCawuId);
+
+      // Fetch grade components and grades for each course in parallel
+      const ipkDataPromises = filteredCourses.map(async (course) => {
+        const [components, grades] = await Promise.all([
+          getGradeComponents(course.id).catch(() => []),
+          getGradesForCourse(course.id).catch(() => []),
+        ]);
+
+        // Create score map from grades
+        const scoreMap = new Map<number, number | null>();
+        grades.forEach(g => scoreMap.set(g.id, g.score));
+
+        // Merge components with scores
+        const componentsWithScore = components.map(comp => ({
+          ...comp,
+          score: scoreMap.get(comp.id) ?? undefined,
+        }));
+
+        return {
+          course_id: course.id,
+          course_code: course.code || course.slug || "",
+          course_name: course.name,
+          sks: course.sks || 3,
+          components: componentsWithScore,
+        };
+      });
+
+      const data = await Promise.all(ipkDataPromises);
+      setIpkData(data);
       setLocalScores({});
     } catch (error) {
       console.error("Failed to load IPK data:", error);
-
-      // Inject dummy data if API fails or returns empty
-      setIpkData([
-        {
-          course_id: 1,
-          course_code: "AI",
-          course_name: "Kecerdasan Buatan",
-          sks: 3,
-          components: [
-            { id: 1, course_id: 1, name: "UTS", weight: 30, type: "exam", score: undefined, created_at: "", updated_at: "" },
-            { id: 2, course_id: 1, name: "UAS", weight: 40, type: "exam", score: undefined, created_at: "", updated_at: "" },
-            { id: 3, course_id: 1, name: "Tugas", weight: 30, type: "assignment", score: undefined, created_at: "", updated_at: "" },
-          ],
-        },
-        {
-          course_id: 2,
-          course_code: "DB",
-          course_name: "Basis Data",
-          sks: 3,
-          components: [
-            { id: 4, course_id: 2, name: "UTS", weight: 30, type: "exam", score: undefined, created_at: "", updated_at: "" },
-            { id: 5, course_id: 2, name: "UAS", weight: 40, type: "exam", score: undefined, created_at: "", updated_at: "" },
-            { id: 6, course_id: 2, name: "Praktikum", weight: 30, type: "lab", score: undefined, created_at: "", updated_at: "" },
-          ],
-        },
-        {
-          course_id: 3,
-          course_code: "WEB",
-          course_name: "Pemrograman Web",
-          sks: 3,
-          components: [
-            { id: 7, course_id: 3, name: "UTS", weight: 25, type: "exam", score: undefined, created_at: "", updated_at: "" },
-            { id: 8, course_id: 3, name: "UAS", weight: 35, type: "exam", score: undefined, created_at: "", updated_at: "" },
-            { id: 9, course_id: 3, name: "Project", weight: 40, type: "assignment", score: undefined, created_at: "", updated_at: "" },
-          ],
-        },
-        {
-          course_id: 4,
-          course_code: "NET",
-          course_name: "Jaringan Komputer",
-          sks: 3,
-          components: [
-            { id: 10, course_id: 4, name: "UTS", weight: 30, type: "exam", score: undefined, created_at: "", updated_at: "" },
-            { id: 11, course_id: 4, name: "UAS", weight: 40, type: "exam", score: undefined, created_at: "", updated_at: "" },
-            { id: 12, course_id: 4, name: "Lab", weight: 30, type: "lab", score: undefined, created_at: "", updated_at: "" },
-          ],
-        },
-        {
-          course_id: 5,
-          course_code: "STAT",
-          course_name: "Statistika",
-          sks: 2,
-          components: [
-            { id: 13, course_id: 5, name: "UTS", weight: 35, type: "exam", score: undefined, created_at: "", updated_at: "" },
-            { id: 14, course_id: 5, name: "UAS", weight: 45, type: "exam", score: undefined, created_at: "", updated_at: "" },
-            { id: 15, course_id: 5, name: "Tugas", weight: 20, type: "assignment", score: undefined, created_at: "", updated_at: "" },
-          ],
-        },
-      ]);
+      setIpkData([]);
     } finally {
       setLoading(false);
     }
@@ -240,21 +219,30 @@ export default function IPKPage() {
         <Card className="md:col-span-1">
           <div className="p-4">
             <label className="text-sm font-medium mb-2 block">Catur Wulan</label>
-            {topbarCawu && cawu === topbarCawu.id && (
+            {selectedCawu && cawu === selectedCawu.id && (
               <p className="text-xs text-muted-foreground mb-2">
-                Mengikuti cawu di topbar
+                Mengikuti cawu aktif di topbar
               </p>
             )}
-            <Select value={String(cawu)} onValueChange={(v) => setCawu(Number(v))}>
+            <Select value={String(activeCawuId)} onValueChange={(v) => setCawu(Number(v))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[1, 2, 3, 4, 5].map((c) => (
-                  <SelectItem key={c} value={String(c)}>
-                    Cawu {c}
+                {cawus.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    Cawu {c.semester}{c.is_active ? " (Aktif)" : ""}
                   </SelectItem>
                 ))}
+                {cawus.length === 0 && (
+                  <>
+                    {[1, 2, 3, 4, 5].map((c) => (
+                      <SelectItem key={c} value={String(c)}>
+                        Cawu {c}
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>

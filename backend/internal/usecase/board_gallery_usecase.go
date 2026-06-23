@@ -53,7 +53,23 @@ func (uc *BoardGalleryUsecase) GetBySessionID(ctx context.Context, sessionID int
 		return nil, fmt.Errorf("failed to get board gallery items: %w", err)
 	}
 
-	// Ensure empty slice instead of nil
+	if items == nil {
+		items = []domain.BoardGallery{}
+	}
+
+	return items, nil
+}
+
+func (uc *BoardGalleryUsecase) GetByTopicID(ctx context.Context, topicID int) ([]domain.BoardGallery, error) {
+	if topicID == 0 {
+		return nil, fmt.Errorf("topic_id is required")
+	}
+
+	items, err := uc.boardGalleryRepo.GetByTopicID(topicID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get board gallery items: %w", err)
+	}
+
 	if items == nil {
 		items = []domain.BoardGallery{}
 	}

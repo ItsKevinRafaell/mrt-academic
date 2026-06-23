@@ -32,6 +32,11 @@ export async function uploadPhoto(
   return unwrapData<Photo>(response);
 }
 
+export async function getPhotosByTopic(topicId: number): Promise<Photo[]> {
+  const response = await api.get(`/topics/${topicId}/photos`);
+  return unwrapData<Photo[]>(response);
+}
+
 export async function deletePhoto(photoId: number): Promise<void> {
   await api.delete(`/photos/${photoId}`);
 }

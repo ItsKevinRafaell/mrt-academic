@@ -8,6 +8,7 @@ export type { Material } from "@/types";
 export const materialKeys = {
   bySession: (sessionId: number) => ["materials", "session", sessionId] as const,
   byCourse: (courseId: number) => ["materials", "course", courseId] as const,
+  byTopic: (topicId: number) => ["materials", "topic", topicId] as const,
 };
 
 // API functions
@@ -30,8 +31,21 @@ export async function getMaterialsByCourse(courseId: number): Promise<Material[]
   return data.flatMap((session) => session.Materials || []);
 }
 
+export async function getMaterialsByTopic(topicId: number): Promise<Material[]> {
+  const res = await api.get(`/topics/${topicId}/materials`);
+  return unwrapData<Material[]>(res);
+}
+
 export async function createMaterial(input: MaterialInput): Promise<Material> {
   const res = await api.post("/materials", input);
+  return unwrapData<Material>(res);
+}
+
+export async function createMaterialForTopic(
+  topicId: number,
+  input: MaterialInput
+): Promise<Material> {
+  const res = await api.post(`/topics/${topicId}/materials`, input);
   return unwrapData<Material>(res);
 }
 

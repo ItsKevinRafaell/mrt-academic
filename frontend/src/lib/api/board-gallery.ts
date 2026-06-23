@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface BoardGalleryItem {
   id: number;
-  session_id: number;
+  session_id?: number;
+  topic_id?: number;
   uploaded_by: string;
   title: string;
   description: string;
@@ -17,7 +18,8 @@ export interface BoardGalleryItem {
 }
 
 export interface CreateBoardGalleryRequest {
-  session_id: number;
+  session_id?: number;
+  topic_id?: number;
   title: string;
   description: string;
   image_url: string;
@@ -51,6 +53,20 @@ export async function getBoardGalleryBySession(
   return response.data.data ?? [];
 }
 
+export async function getBoardGalleryByTopic(
+  topicId: number
+): Promise<BoardGalleryItem[]> {
+  const response = await api.get(`/topics/${topicId}/photos`);
+  return response.data.data ?? [];
+}
+
+export async function createBoardGalleryItemForTopic(
+  data: CreateBoardGalleryRequest
+): Promise<BoardGalleryItem> {
+  const response = await api.post('/board-gallery', data);
+  return response.data;
+}
+
 export async function getBoardGalleryItem(id: number): Promise<BoardGalleryItem> {
   const response = await api.get(`/board-gallery/${id}`);
   return response.data;
@@ -77,6 +93,7 @@ export async function reorderBoardGalleryItem(
 
 export const boardGalleryKeys = {
   bySession: (sessionId: number) => ['board-gallery', 'session', sessionId] as const,
+  byTopic: (topicId: number) => ['board-gallery', 'topic', topicId] as const,
 };
 
 export function useBoardGallery(sessionId: number) {
@@ -94,9 +111,16 @@ export function useCreateBoardGalleryItem() {
   return useMutation({
     mutationFn: (data: CreateBoardGalleryRequest) => createBoardGalleryItem(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: boardGalleryKeys.bySession(variables.session_id),
-      });
+      if (variables.session_id) {
+        queryClient.invalidateQueries({
+          queryKey: boardGalleryKeys.bySession(variables.session_id),
+        });
+      }
+      if (variables.topic_id) {
+        queryClient.invalidateQueries({
+          queryKey: boardGalleryKeys.byTopic(variables.topic_id),
+        });
+      }
     },
   });
 }
@@ -108,6 +132,40 @@ export function useDeleteBoardGalleryItem(sessionId: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: boardGalleryKeys.bySession(sessionId),
+      });
+    },
+  });
+}
+
+export function useBoardGalleryTopic(topicId: number) {
+  return useQuery({
+    queryKey: boardGalleryKeys.byTopic(topicId),
+    queryFn: () => getBoardGalleryByTopic(topicId),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: false,
+  });
+}
+
+export function useCreateBoardGalleryItemForTopic(topicId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateBoardGalleryRequest) => createBoardGalleryItemForTopic(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: boardGalleryKeys.byTopic(topicId),
+      });
+    },
+  });
+}
+
+export function useDeleteBoardGalleryItemTopic(topicId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteBoardGalleryItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: boardGalleryKeys.byTopic(topicId),
       });
     },
   });

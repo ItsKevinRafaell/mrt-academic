@@ -78,9 +78,10 @@ export function TaskModal({
         {task.description && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Deskripsi</h4>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {task.description}
-            </p>
+            <div
+              className="prose prose-sm max-w-none prose-ul:my-1 prose-ol:my-1 prose-li:text-sm prose-li:leading-tight prose-li:py-0 text-muted-foreground"
+              dangerouslySetInnerHTML={{ __html: task.description }}
+            />
           </div>
         )}
 

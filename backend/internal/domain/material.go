@@ -18,6 +18,7 @@ type Material struct {
 type MaterialRepository interface {
 	Create(material *Material) error
 	GetBySessionID(sessionID int) ([]Material, error)
+	GetByTopicID(topicID int) ([]Material, error)
 	GetByCourseID(courseID int) ([]SessionWithMaterials, error)
 	GetByID(id int) (*Material, error)
 	Update(material *Material) error

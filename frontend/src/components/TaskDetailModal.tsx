@@ -97,7 +97,10 @@ export function TaskDetailModal({ taskId, open, onOpenChange }: TaskDetailModalP
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Description</p>
-              <p className="text-sm">{detail.task.description || "No description"}</p>
+              <div
+                className="prose prose-sm max-w-none prose-ul:my-1 prose-ol:my-1 prose-li:text-sm prose-li:leading-tight prose-li:py-0"
+                dangerouslySetInnerHTML={{ __html: detail.task.description || "No description" }}
+              />
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">

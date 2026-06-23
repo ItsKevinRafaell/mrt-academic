@@ -20,6 +20,7 @@ type BoardGallery struct {
 type BoardGalleryRepository interface {
 	Create(item *BoardGallery) error
 	GetBySessionID(sessionID int) ([]BoardGallery, error)
+	GetByTopicID(topicID int) ([]BoardGallery, error)
 	GetByID(id int) (*BoardGallery, error)
 	Update(item *BoardGallery) error
 	Delete(id int) error

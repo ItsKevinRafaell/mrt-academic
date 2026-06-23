@@ -46,6 +46,65 @@ func (r *boardGalleryRepository) Create(item *domain.BoardGallery) error {
 	return nil
 }
 
+func (r *boardGalleryRepository) GetByTopicID(topicID int) ([]domain.BoardGallery, error) {
+	query := `
+		SELECT bg.id, bg.session_id, bg.uploaded_by, bg.title, bg.description, bg.image_url,
+			bg.ocr_text, bg.tags, bg.order_number, bg.is_active, bg.created_at, bg.updated_at
+		FROM board_gallery bg
+		JOIN sessions s ON s.id = bg.session_id
+		JOIN topic_sessions ts ON ts.session_id = s.id
+		WHERE ts.topic_id = $1 AND bg.is_active = true
+		ORDER BY bg.order_number, bg.created_at DESC
+	`
+
+	rows, err := r.db.Query(query, topicID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query board gallery: %w", err)
+	}
+	defer rows.Close()
+
+	var items []domain.BoardGallery
+	for rows.Next() {
+		var item domain.BoardGallery
+		var tagsArray string
+
+		err := rows.Scan(
+			&item.ID,
+			&item.SessionID,
+			&item.UploadedBy,
+			&item.Title,
+			&item.Description,
+			&item.ImageURL,
+			&item.OCRText,
+			&tagsArray,
+			&item.OrderNumber,
+			&item.IsActive,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan board gallery: %w", err)
+		}
+
+		if tagsArray != "" && tagsArray != "{}" {
+			tagsArray = strings.Trim(tagsArray, "{}")
+			item.Tags = strings.Split(tagsArray, ",")
+		}
+
+		items = append(items, item)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating board gallery rows: %w", err)
+	}
+
+	if items == nil {
+		items = []domain.BoardGallery{}
+	}
+
+	return items, nil
+}
+
 func (r *boardGalleryRepository) GetBySessionID(sessionID int) ([]domain.BoardGallery, error) {
 	query := `
 		SELECT id, session_id, uploaded_by, title, description, image_url,

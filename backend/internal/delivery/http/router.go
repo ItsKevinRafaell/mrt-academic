@@ -202,6 +202,11 @@ func (r *Router) Setup() {
 	r.mux.Handle("DELETE /api/v1/topics/{id}/sessions/{session_id}", auth(admin(http.HandlerFunc(topicHandler.RemoveSessionFromTopic))))
 	r.mux.Handle("PUT /api/v1/topics/reorder", auth(admin(http.HandlerFunc(topicHandler.ReorderTopics))))
 
+	// Topic material routes
+	r.mux.Handle("GET /api/v1/topics/{topic_id}/materials", auth(http.HandlerFunc(courseHandler.GetMaterialsByTopic)))
+	r.mux.Handle("POST /api/v1/topics/{topic_id}/materials", auth(admin(http.HandlerFunc(courseHandler.CreateMaterialForTopic))))
+	r.mux.Handle("DELETE /api/v1/topics/materials/{material_id}", auth(admin(http.HandlerFunc(courseHandler.DeleteMaterial))))
+
 	// Question routes
 	r.mux.Handle("GET /api/v1/courses/{course_id}/questions", auth(http.HandlerFunc(questionHandler.GetByCourseID)))
 	r.mux.Handle("POST /api/v1/questions", auth(admin(http.HandlerFunc(questionHandler.Create))))
@@ -269,6 +274,7 @@ func (r *Router) Setup() {
 	r.mux.Handle("PUT /api/v1/board-gallery/{id}", auth(http.HandlerFunc(boardGalleryHandler.Update)))
 	r.mux.Handle("DELETE /api/v1/board-gallery/{id}", auth(http.HandlerFunc(boardGalleryHandler.Delete)))
 	r.mux.Handle("PATCH /api/v1/board-gallery/{id}/reorder", auth(http.HandlerFunc(boardGalleryHandler.ReorderItems)))
+	r.mux.Handle("GET /api/v1/topics/{topic_id}/photos", auth(http.HandlerFunc(boardGalleryHandler.GetPhotosByTopic)))
 
 	// Bank Soal routes
 	bankSoalHandler := handler.NewBankSoalHandler(r.bankSoalUsecase)
