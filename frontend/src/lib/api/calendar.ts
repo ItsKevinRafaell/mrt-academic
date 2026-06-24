@@ -13,6 +13,9 @@ export interface CalendarEvent {
   color?: string;
   location?: string;
   is_all_day?: boolean;
+  is_recurring?: boolean;
+  recurrence_pattern?: string;
+  week_parity?: "odd" | "even" | null;
   course_name?: string;
   created_at: string;
   updated_at: string;
@@ -41,7 +44,11 @@ export interface CreateCalendarEventRequest {
   color?: string;
   location?: string;
   course_id?: number;
+  topic_id?: number;
   session_id?: number;
+  is_recurring?: boolean;
+  recurrence_pattern?: string;
+  week_parity?: "odd" | "even" | null;
 }
 
 export interface UpdateCalendarEventRequest {
@@ -54,7 +61,11 @@ export interface UpdateCalendarEventRequest {
   color?: string;
   location?: string;
   course_id?: number;
+  topic_id?: number;
   session_id?: number;
+  is_recurring?: boolean;
+  recurrence_pattern?: string;
+  week_parity?: "odd" | "even" | null;
 }
 
 export const getCalendarEvents = async (

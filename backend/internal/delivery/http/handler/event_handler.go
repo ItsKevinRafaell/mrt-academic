@@ -22,6 +22,13 @@ type EventRequest struct {
 	Description string `json:"description"`
 	EventDate   string `json:"event_date"`
 	EventType   string `json:"event_type"`
+	StartTime   string `json:"start_time"`
+	EndTime     string `json:"end_time"`
+	IsAllDay    *bool  `json:"is_all_day"`
+	Color       string `json:"color"`
+	Location    string `json:"location"`
+	CourseID    *int   `json:"course_id"`
+	SessionID   *int   `json:"session_id"`
 }
 
 func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -37,9 +44,19 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventDate, err := time.Parse("2006-01-02", req.EventDate)
+	// Support both event_date (YYYY-MM-DD) and start_time/end_time (ISO 8601)
+	var eventDate time.Time
+	var err error
+	if req.EventDate != "" {
+		eventDate, err = time.Parse("2006-01-02", req.EventDate)
+	} else if req.StartTime != "" {
+		eventDate, err = time.Parse(time.RFC3339, req.StartTime)
+	} else {
+		respondError(w, http.StatusBadRequest, "missing_date", "event_date or start_time is required")
+		return
+	}
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "invalid_date", "Invalid date format (use YYYY-MM-DD)")
+		respondError(w, http.StatusBadRequest, "invalid_date", "Invalid date format")
 		return
 	}
 
@@ -109,9 +126,17 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventDate, err := time.Parse("2006-01-02", req.EventDate)
+	var eventDate time.Time
+	if req.EventDate != "" {
+		eventDate, err = time.Parse("2006-01-02", req.EventDate)
+	} else if req.StartTime != "" {
+		eventDate, err = time.Parse(time.RFC3339, req.StartTime)
+	} else {
+		respondError(w, http.StatusBadRequest, "missing_date", "event_date or start_time is required")
+		return
+	}
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "invalid_date", "Invalid date format (use YYYY-MM-DD)")
+		respondError(w, http.StatusBadRequest, "invalid_date", "Invalid date format")
 		return
 	}
 

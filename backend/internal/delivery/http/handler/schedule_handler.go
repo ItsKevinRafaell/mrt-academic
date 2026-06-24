@@ -21,6 +21,7 @@ type ScheduleRequest struct {
 	StartTime string `json:"start_time"`
 	EndTime   string `json:"end_time"`
 	SessionID *int   `json:"session_id,omitempty"`
+	TopicID   *int   `json:"topic_id,omitempty"`
 }
 
 func (h *ScheduleHandler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -77,6 +78,16 @@ func (h *ScheduleHandler) GetActive(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, schedules)
 }
 
+func (h *ScheduleHandler) GetCurrentSchedule(w http.ResponseWriter, r *http.Request) {
+	schedules, err := h.scheduleUsecase.GetCurrentSchedule()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, schedules)
+}
+
 func (h *ScheduleHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req ScheduleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -84,7 +95,7 @@ func (h *ScheduleHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	schedule, err := h.scheduleUsecase.Create(req.CourseID, req.DayOfWeek, req.StartTime, req.EndTime, req.SessionID)
+	schedule, err := h.scheduleUsecase.Create(req.CourseID, req.DayOfWeek, req.StartTime, req.EndTime, req.SessionID, req.TopicID)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "create_failed", err.Error())
 		return
@@ -107,7 +118,7 @@ func (h *ScheduleHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.scheduleUsecase.Update(id, req.CourseID, req.DayOfWeek, req.StartTime, req.EndTime, req.SessionID)
+	err = h.scheduleUsecase.Update(id, req.CourseID, req.DayOfWeek, req.StartTime, req.EndTime, req.SessionID, req.TopicID)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "update_failed", err.Error())
 		return

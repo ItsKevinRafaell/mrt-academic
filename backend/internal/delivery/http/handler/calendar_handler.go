@@ -1,8 +1,12 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"mrt-backend/internal/delivery/http/middleware"
 	"mrt-backend/internal/domain"
 	"mrt-backend/internal/usecase"
 	"net/http"
@@ -26,25 +30,51 @@ func (h *CalendarHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		Title             string     `json:"title"`
 		Description       string     `json:"description"`
 		EventType         string     `json:"event_type"`
-		StartTime         time.Time  `json:"start_time"`
-		EndTime           time.Time  `json:"end_time"`
+		StartTime         string     `json:"start_time"`
+		EndTime           string     `json:"end_time"`
 		IsRecurring       bool       `json:"is_recurring"`
 		RecurrencePattern string     `json:"recurrence_pattern"`
 		CourseID          *int       `json:"course_id"`
 		TopicID           *int       `json:"topic_id"`
 		SessionID         *int       `json:"session_id"`
 		IsActiveSession   bool       `json:"is_active_session"`
+		WeekParity        *string    `json:"week_parity"`
 	}
 
+	body, _ := io.ReadAll(r.Body)
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
+	log.Printf("[calendar] raw body: %s", string(body))
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[calendar] decode error: %v", err)
 		respondError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
+		return
+	}
+	log.Printf("[calendar] received: title=%q start=%q end=%q type=%q", req.Title, req.StartTime, req.EndTime, req.EventType)
+
+	// Parse time flexibly: accept both RFC3339 and local datetime
+	startTime, err := parseTimeFlexible(req.StartTime)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_start_time", "Invalid start_time format")
+		return
+	}
+	endTime, err := parseTimeFlexible(req.EndTime)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_end_time", "Invalid end_time format")
 		return
 	}
 
 	// Get user ID from context (set by auth middleware)
-	userID, ok := r.Context().Value("user_id").(string)
-	if !ok {
+	userID := middleware.GetUserID(r.Context())
+	if userID == "" {
 		respondError(w, http.StatusUnauthorized, "unauthorized", "User ID not found in context")
+		return
+	}
+
+	// Reject stale JWTs (user_id no longer in DB) — forces re-login.
+	// calendar_events.created_by is NOT NULL + FK → users(id).
+	if exists, _ := h.calendarUsecase.UserExists(r.Context(), userID); !exists {
+		respondError(w, http.StatusUnauthorized, "user_not_found", "Account no longer exists. Please log in again.")
 		return
 	}
 
@@ -53,14 +83,15 @@ func (h *CalendarHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		Title:             req.Title,
 		Description:       req.Description,
 		EventType:         req.EventType,
-		StartTime:         req.StartTime,
-		EndTime:           req.EndTime,
+		StartTime:         startTime,
+		EndTime:           endTime,
 		IsRecurring:       req.IsRecurring,
 		RecurrencePattern: req.RecurrencePattern,
 		CourseID:          req.CourseID,
 		TopicID:           req.TopicID,
 		SessionID:         req.SessionID,
 		IsActiveSession:   req.IsActiveSession,
+		WeekParity:        req.WeekParity,
 		CreatedBy:         userID,
 	}
 
@@ -69,7 +100,8 @@ func (h *CalendarHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusBadRequest, "validation_error", "Invalid event data")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "create_failed", "Failed to create event")
+		log.Printf("[calendar] CreateEvent failed: %v", err)
+		respondError(w, http.StatusInternalServerError, "create_failed", err.Error())
 		return
 	}
 
@@ -185,18 +217,30 @@ func (h *CalendarHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		Title             string     `json:"title"`
 		Description       string     `json:"description"`
 		EventType         string     `json:"event_type"`
-		StartTime         time.Time  `json:"start_time"`
-		EndTime           time.Time  `json:"end_time"`
+		StartTime         string     `json:"start_time"`
+		EndTime           string     `json:"end_time"`
 		IsRecurring       bool       `json:"is_recurring"`
 		RecurrencePattern string     `json:"recurrence_pattern"`
 		CourseID          *int       `json:"course_id"`
 		TopicID           *int       `json:"topic_id"`
 		SessionID         *int       `json:"session_id"`
 		IsActiveSession   bool       `json:"is_active_session"`
+		WeekParity        *string    `json:"week_parity"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
+		return
+	}
+
+	startTime, err := parseTimeFlexible(req.StartTime)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_start_time", "Invalid start_time format")
+		return
+	}
+	endTime, err := parseTimeFlexible(req.EndTime)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_end_time", "Invalid end_time format")
 		return
 	}
 
@@ -205,14 +249,15 @@ func (h *CalendarHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		Title:             req.Title,
 		Description:       req.Description,
 		EventType:         req.EventType,
-		StartTime:         req.StartTime,
-		EndTime:           req.EndTime,
+		StartTime:         startTime,
+		EndTime:           endTime,
 		IsRecurring:       req.IsRecurring,
 		RecurrencePattern: req.RecurrencePattern,
 		CourseID:          req.CourseID,
 		TopicID:           req.TopicID,
 		SessionID:         req.SessionID,
 		IsActiveSession:   req.IsActiveSession,
+		WeekParity:        req.WeekParity,
 	}
 
 	if err := h.calendarUsecase.UpdateEvent(r.Context(), event); err != nil {
@@ -280,4 +325,22 @@ func (h *CalendarHandler) SetActiveSession(w http.ResponseWriter, r *http.Reques
 	respondJSON(w, http.StatusOK, map[string]string{
 		"message": fmt.Sprintf("Event %s active session status updated", id),
 	})
+}
+
+// parseTimeFlexible parses time from multiple formats: RFC3339, "2006-01-02T15:04", "2006-01-02 15:04"
+func parseTimeFlexible(s string) (time.Time, error) {
+	formats := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04",
+		"2006-01-02 15:04:05",
+		"2006-01-02 15:04",
+	}
+	for _, f := range formats {
+		t, err := time.Parse(f, s)
+		if err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unable to parse time: %s", s)
 }

@@ -9,6 +9,8 @@ type Cawu struct {
 	Year      int       `json:"year"`
 	Semester  int       `json:"semester"`
 	IsActive  bool      `json:"is_active"`
+	StartDate *string   `json:"start_date,omitempty"`
+	EndDate   *string   `json:"end_date,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

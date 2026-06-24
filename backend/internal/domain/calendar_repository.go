@@ -11,4 +11,5 @@ type CalendarEventRepository interface {
 	Update(ctx context.Context, event *CalendarEvent) error
 	Delete(ctx context.Context, id string) error
 	SetActiveSession(ctx context.Context, id string, isActive bool) error
+	UserExists(ctx context.Context, userID string) (bool, error)
 }

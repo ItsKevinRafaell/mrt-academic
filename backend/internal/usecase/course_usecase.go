@@ -33,14 +33,14 @@ func (uc *CourseUsecase) Create(ctx context.Context, c *domain.Course) error {
 	return uc.courseRepo.Create(c)
 }
 
-func (uc *CourseUsecase) GetAll(ctx context.Context, page, limit int) ([]domain.Course, domain.Pagination, error) {
+func (uc *CourseUsecase) GetAll(ctx context.Context, page, limit int, cawuID int) ([]domain.Course, domain.Pagination, error) {
 	if page < 1 {
 		page = 1
 	}
 	if limit < 1 || limit > 100 {
 		limit = 20
 	}
-	courses, total, err := uc.courseRepo.GetAll(page, limit)
+	courses, total, err := uc.courseRepo.GetAll(page, limit, cawuID)
 	if err != nil {
 		return nil, domain.Pagination{}, err
 	}

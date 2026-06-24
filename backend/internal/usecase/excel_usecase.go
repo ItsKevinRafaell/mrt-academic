@@ -125,7 +125,7 @@ func (uc *ExcelUsecase) ExportGrades(userID string, cawu int) ([]byte, error) {
 }
 
 func (uc *ExcelUsecase) ExportCourses() ([]byte, error) {
-	courses, _, err := uc.courseRepo.GetAll(1, 10000)
+	courses, _, err := uc.courseRepo.GetAll(1, 10000, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +320,7 @@ func (uc *ExcelUsecase) ImportCourses(reader io.Reader) (*ImportResult, error) {
 			Instructors: instructors,
 		}
 
-		existingCourses, _, err := uc.courseRepo.GetAll(1, 10000)
+		existingCourses, _, err := uc.courseRepo.GetAll(1, 10000, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -504,7 +504,7 @@ func (uc *ExcelUsecase) PreviewImport(reader io.Reader) (*ImportPreview, error) 
 	sessionSheet := "Sessions"
 	materialSheet := "Materials"
 
-	existingCourses, _, err := uc.courseRepo.GetAll(1, 10000)
+	existingCourses, _, err := uc.courseRepo.GetAll(1, 10000, 0)
 	if err != nil {
 		return nil, err
 	}

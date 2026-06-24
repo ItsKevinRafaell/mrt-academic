@@ -18,7 +18,7 @@ func NewScheduleUsecase(scheduleRepo domain.ScheduleRepository, courseRepo domai
 	}
 }
 
-func (u *ScheduleUsecase) Create(courseID, dayOfWeek int, startTime, endTime string, sessionID *int) (*domain.Schedule, error) {
+func (u *ScheduleUsecase) Create(courseID, dayOfWeek int, startTime, endTime string, sessionID, topicID *int) (*domain.Schedule, error) {
 	if dayOfWeek < 0 || dayOfWeek > 6 {
 		return nil, fmt.Errorf("day_of_week must be between 0 and 6")
 	}
@@ -38,6 +38,7 @@ func (u *ScheduleUsecase) Create(courseID, dayOfWeek int, startTime, endTime str
 		StartTime: startTime,
 		EndTime:   endTime,
 		SessionID: sessionID,
+		TopicID:   topicID,
 	}
 
 	err = u.scheduleRepo.Create(s)
@@ -70,7 +71,17 @@ func (u *ScheduleUsecase) GetActive() ([]domain.ScheduleWithCourse, error) {
 	return u.scheduleRepo.GetActive(dayOfWeek, currentTime)
 }
 
-func (u *ScheduleUsecase) Update(id, courseID, dayOfWeek int, startTime, endTime string, sessionID *int) error {
+func (u *ScheduleUsecase) GetCurrentSchedule() ([]domain.CurrentSchedule, error) {
+	now := time.Now().UTC()
+	wib := now.Add(7 * time.Hour)
+
+	dayOfWeek := int(wib.Weekday())
+	currentTime := wib.Format("15:04:05")
+
+	return u.scheduleRepo.GetActiveWithTopics(dayOfWeek, currentTime)
+}
+
+func (u *ScheduleUsecase) Update(id, courseID, dayOfWeek int, startTime, endTime string, sessionID, topicID *int) error {
 	if dayOfWeek < 0 || dayOfWeek > 6 {
 		return fmt.Errorf("day_of_week must be between 0 and 6")
 	}
@@ -96,6 +107,7 @@ func (u *ScheduleUsecase) Update(id, courseID, dayOfWeek int, startTime, endTime
 		StartTime: startTime,
 		EndTime:   endTime,
 		SessionID: sessionID,
+		TopicID:   topicID,
 		CreatedAt: existing.CreatedAt,
 	}
 

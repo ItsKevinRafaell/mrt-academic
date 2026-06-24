@@ -30,8 +30,9 @@ type CourseRequest struct {
 func (h *CourseHandler) List(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	cawuID, _ := strconv.Atoi(r.URL.Query().Get("cawu_id"))
 
-	courses, pagination, err := h.courseUsecase.GetAll(r.Context(), page, limit)
+	courses, pagination, err := h.courseUsecase.GetAll(r.Context(), page, limit, cawuID)
 	if err != nil {
 		handleError(w, err)
 		return

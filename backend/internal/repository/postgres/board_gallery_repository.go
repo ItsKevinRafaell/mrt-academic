@@ -18,9 +18,9 @@ func NewBoardGalleryRepository(db *sql.DB) domain.BoardGalleryRepository {
 func (r *boardGalleryRepository) Create(item *domain.BoardGallery) error {
 	query := `
 		INSERT INTO board_gallery (
-			session_id, uploaded_by, title, description, image_url,
+			session_id, topic_id, uploaded_by, title, description, image_url,
 			ocr_text, tags, order_number, is_active
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -29,6 +29,7 @@ func (r *boardGalleryRepository) Create(item *domain.BoardGallery) error {
 	err := r.db.QueryRow(
 		query,
 		item.SessionID,
+		item.TopicID,
 		item.UploadedBy,
 		item.Title,
 		item.Description,
@@ -48,12 +49,10 @@ func (r *boardGalleryRepository) Create(item *domain.BoardGallery) error {
 
 func (r *boardGalleryRepository) GetByTopicID(topicID int) ([]domain.BoardGallery, error) {
 	query := `
-		SELECT bg.id, bg.session_id, bg.uploaded_by, bg.title, bg.description, bg.image_url,
+		SELECT bg.id, bg.session_id, bg.topic_id, bg.uploaded_by, bg.title, bg.description, bg.image_url,
 			bg.ocr_text, bg.tags, bg.order_number, bg.is_active, bg.created_at, bg.updated_at
 		FROM board_gallery bg
-		JOIN sessions s ON s.id = bg.session_id
-		JOIN topic_sessions ts ON ts.session_id = s.id
-		WHERE ts.topic_id = $1 AND bg.is_active = true
+		WHERE bg.topic_id = $1 AND bg.is_active = true
 		ORDER BY bg.order_number, bg.created_at DESC
 	`
 
@@ -71,6 +70,7 @@ func (r *boardGalleryRepository) GetByTopicID(topicID int) ([]domain.BoardGaller
 		err := rows.Scan(
 			&item.ID,
 			&item.SessionID,
+			&item.TopicID,
 			&item.UploadedBy,
 			&item.Title,
 			&item.Description,
@@ -107,7 +107,7 @@ func (r *boardGalleryRepository) GetByTopicID(topicID int) ([]domain.BoardGaller
 
 func (r *boardGalleryRepository) GetBySessionID(sessionID int) ([]domain.BoardGallery, error) {
 	query := `
-		SELECT id, session_id, uploaded_by, title, description, image_url,
+		SELECT id, session_id, topic_id, uploaded_by, title, description, image_url,
 			ocr_text, tags, order_number, is_active, created_at, updated_at
 		FROM board_gallery
 		WHERE session_id = $1 AND is_active = true
@@ -128,6 +128,7 @@ func (r *boardGalleryRepository) GetBySessionID(sessionID int) ([]domain.BoardGa
 		err := rows.Scan(
 			&item.ID,
 			&item.SessionID,
+			&item.TopicID,
 			&item.UploadedBy,
 			&item.Title,
 			&item.Description,
@@ -161,7 +162,7 @@ func (r *boardGalleryRepository) GetBySessionID(sessionID int) ([]domain.BoardGa
 
 func (r *boardGalleryRepository) GetByID(id int) (*domain.BoardGallery, error) {
 	query := `
-		SELECT id, session_id, uploaded_by, title, description, image_url,
+		SELECT id, session_id, topic_id, uploaded_by, title, description, image_url,
 			ocr_text, tags, order_number, is_active, created_at, updated_at
 		FROM board_gallery
 		WHERE id = $1
@@ -173,6 +174,7 @@ func (r *boardGalleryRepository) GetByID(id int) (*domain.BoardGallery, error) {
 	err := r.db.QueryRow(query, id).Scan(
 		&item.ID,
 		&item.SessionID,
+		&item.TopicID,
 		&item.UploadedBy,
 		&item.Title,
 		&item.Description,

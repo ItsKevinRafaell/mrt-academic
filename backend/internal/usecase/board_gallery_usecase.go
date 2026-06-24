@@ -18,8 +18,8 @@ func NewBoardGalleryUsecase(repo domain.BoardGalleryRepository) *BoardGalleryUse
 }
 
 func (uc *BoardGalleryUsecase) CreateItem(ctx context.Context, item *domain.BoardGallery) error {
-	if item.SessionID == 0 {
-		return fmt.Errorf("session_id is required")
+	if item.SessionID == nil && item.TopicID == nil {
+		return fmt.Errorf("either session_id or topic_id is required")
 	}
 	if item.UploadedBy == "" {
 		return fmt.Errorf("uploaded_by is required")

@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"mrt-backend/internal/domain"
 
 	"github.com/lib/pq"
@@ -35,10 +36,17 @@ func (r *CourseRepo) Create(course *domain.Course) error {
 	return err
 }
 
-func (r *CourseRepo) GetAll(page, limit int) ([]domain.Course, int, error) {
+func (r *CourseRepo) GetAll(page, limit int, cawuID int) ([]domain.Course, int, error) {
 	var total int
-	countQuery := `SELECT COUNT(*) FROM courses`
-	if err := r.db.QueryRow(countQuery).Scan(&total); err != nil {
+	countQuery := `SELECT COUNT(*) FROM courses WHERE 1=1`
+	args := []interface{}{}
+	argN := 1
+	if cawuID > 0 {
+		countQuery += fmt.Sprintf(" AND cawu_id = $%d", argN)
+		args = append(args, cawuID)
+		argN++
+	}
+	if err := r.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -47,11 +55,17 @@ func (r *CourseRepo) GetAll(page, limit int) ([]domain.Course, int, error) {
 		COALESCE(ARRAY_AGG(ci.instructor_name) FILTER (WHERE ci.instructor_name IS NOT NULL), '{}')
 		FROM courses c
 		LEFT JOIN course_instructors ci ON ci.course_id = c.id
-		GROUP BY c.id
-		ORDER BY c.code
-		LIMIT $1 OFFSET $2`
+		WHERE 1=1`
 
-	rows, err := r.db.Query(query, limit, offset)
+	if cawuID > 0 {
+		query += fmt.Sprintf(" AND c.cawu_id = $%d", argN)
+		args = append(args, cawuID)
+		argN++
+	}
+	query += fmt.Sprintf(` GROUP BY c.id ORDER BY c.code LIMIT $%d OFFSET $%d`, argN, argN+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -4,7 +4,8 @@ import "time"
 
 type BoardGallery struct {
 	ID          int       `json:"id"`
-	SessionID   int       `json:"session_id"`
+	SessionID   *int      `json:"session_id,omitempty"`
+	TopicID     *int      `json:"topic_id,omitempty"`
 	UploadedBy  string    `json:"uploaded_by"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`

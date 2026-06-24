@@ -10,8 +10,11 @@ export const courseKeys = {
 };
 
 // API functions
-export async function getCourses(): Promise<Course[]> {
-  const res = await api.get("/courses");
+export async function getCourses(cawuId?: number): Promise<Course[]> {
+  const params = new URLSearchParams();
+  if (cawuId) params.append("cawu_id", String(cawuId));
+
+  const res = await api.get(`/courses?${params.toString()}`);
   const courses = unwrapData<Course[]>(res);
   // Ensure all courses have slug
   return courses.map(c => ({
@@ -51,7 +54,7 @@ export async function deleteCourse(id: number): Promise<void> {
 export function useCourses() {
   return useQuery({
     queryKey: courseKeys.all,
-    queryFn: getCourses,
+    queryFn: () => getCourses(),
   });
 }
 

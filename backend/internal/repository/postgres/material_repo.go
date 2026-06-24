@@ -26,7 +26,7 @@ func (r *MaterialRepo) Create(m *domain.Material) error {
 func (r *MaterialRepo) GetByTopicID(topicID int) ([]domain.Material, error) {
 	query := `SELECT m.id, COALESCE(m.session_id, 0), m.topic_id, m.title, m.description, m.type, m.url, m.created_at, m.updated_at
 		FROM materials m
-		WHERE m.topic_id = $1 OR m.session_id IN (SELECT session_id FROM topic_sessions WHERE topic_id = $1)
+		WHERE m.topic_id = $1 OR m.session_id IN (SELECT id FROM sessions WHERE topic_id = $1)
 		ORDER BY m.created_at`
 
 	rows, err := r.db.Query(query, topicID)

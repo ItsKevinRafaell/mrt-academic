@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"mrt-backend/internal/delivery/http/middleware"
 	"mrt-backend/internal/domain"
 	"mrt-backend/internal/usecase"
 	"net/http"
@@ -18,11 +19,13 @@ func NewBoardGalleryHandler(boardGalleryUsecase *usecase.BoardGalleryUsecase) *B
 }
 
 type BoardGalleryRequest struct {
-	SessionID   int    `json:"session_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	ImageURL    string `json:"image_url"`
-	OCRText     string `json:"ocr_text"`
+	SessionID   *int     `json:"session_id,omitempty"`
+	TopicID     *int     `json:"topic_id,omitempty"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	ImageURL    string   `json:"image_url"`
+	OCRText     string   `json:"ocr_text"`
+	Tags        []string `json:"tags"`
 }
 
 func (h *BoardGalleryHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -32,9 +35,8 @@ func (h *BoardGalleryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate required fields
-	if req.SessionID == 0 {
-		respondError(w, http.StatusBadRequest, "invalid_session_id", "session_id is required")
+	if req.SessionID == nil && req.TopicID == nil {
+		respondError(w, http.StatusBadRequest, "invalid_target", "either session_id or topic_id is required")
 		return
 	}
 	if req.ImageURL == "" {
@@ -42,12 +44,17 @@ func (h *BoardGalleryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID := middleware.GetUserID(r.Context())
+
 	item := &domain.BoardGallery{
 		SessionID:   req.SessionID,
+		TopicID:     req.TopicID,
+		UploadedBy:  userID,
 		Title:       req.Title,
 		Description: req.Description,
 		ImageURL:    req.ImageURL,
 		OCRText:     req.OCRText,
+		Tags:        req.Tags,
 	}
 
 	if err := h.boardGalleryUsecase.CreateItem(context.Background(), item); err != nil {

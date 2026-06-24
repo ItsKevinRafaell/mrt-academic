@@ -24,12 +24,12 @@ func (m *mockCourseRepo) Create(c *domain.Course) error {
 	return nil
 }
 
-func (m *mockCourseRepo) GetAll() ([]domain.Course, error) {
+func (m *mockCourseRepo) GetAll(page, limit int, cawuID int) ([]domain.Course, int, error) {
 	var result []domain.Course
 	for _, c := range m.courses {
 		result = append(result, *c)
 	}
-	return result, nil
+	return result, len(result), nil
 }
 
 func (m *mockCourseRepo) GetByID(id int) (*domain.Course, error) {
@@ -59,8 +59,8 @@ func (m *mockCourseRepo) Delete(id int) error {
 type mockSessionRepo struct{}
 
 func (m *mockSessionRepo) Create(s *domain.Session) error              { return nil }
-func (m *mockSessionRepo) GetByCourseID(courseID int) ([]domain.Session, error) {
-	return nil, nil
+func (m *mockSessionRepo) GetByCourseID(courseID int, page, limit int) ([]domain.Session, int, error) {
+	return nil, 0, nil
 }
 func (m *mockSessionRepo) GetByID(id int) (*domain.Session, error) {
 	return nil, nil
@@ -74,6 +74,9 @@ func (m *mockMaterialRepo) Create(mat *domain.Material) error { return nil }
 func (m *mockMaterialRepo) GetByCourseID(courseID int) ([]domain.SessionWithMaterials, error) {
 	return nil, nil
 }
+func (m *mockMaterialRepo) GetByTopicID(topicID int) ([]domain.Material, error) {
+	return nil, nil
+}
 func (m *mockMaterialRepo) GetBySessionID(sessionID int) ([]domain.Material, error) {
 	return nil, nil
 }
@@ -84,7 +87,7 @@ func (m *mockMaterialRepo) Delete(id int) error                      { return ni
 type mockTaskRepo struct{}
 
 func (m *mockTaskRepo) Create(t *domain.Task) error                       { return nil }
-func (m *mockTaskRepo) GetByCourseID(courseID int) ([]domain.Task, error) { return nil, nil }
+func (m *mockTaskRepo) GetByCourseID(courseID int, page, limit int) ([]domain.Task, int, error) { return nil, 0, nil }
 func (m *mockTaskRepo) GetByID(id int) (*domain.Task, error)              { return nil, nil }
 func (m *mockTaskRepo) Update(t *domain.Task) error                       { return nil }
 func (m *mockTaskRepo) Delete(id int) error                               { return nil }
@@ -156,7 +159,7 @@ func TestCourseUsecase_GetAll_Success(t *testing.T) {
 	uc.Create(context.Background(), &domain.Course{Code: "CS101", Name: "Struktur Data", SKS: 3})
 	uc.Create(context.Background(), &domain.Course{Code: "CS102", Name: "Algoritma", SKS: 3})
 
-	courses, err := uc.GetAll(context.Background())
+	courses, _, err := uc.GetAll(context.Background(), 1, 20, 0)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)

@@ -23,8 +23,8 @@ func (s *stubCourseUsecase) Create(course *domain.Course) error {
 	return nil
 }
 
-func (s *stubCourseUsecase) GetAll() ([]domain.Course, error) {
-	return s.courses, s.err
+func (s *stubCourseUsecase) GetAll(page, limit int, cawuID int) ([]domain.Course, int, error) {
+	return s.courses, len(s.courses), s.err
 }
 
 func (s *stubCourseUsecase) GetByID(id int) (*domain.Course, error) {
@@ -50,8 +50,8 @@ func (s *stubCourseUsecase) Delete(id int) error {
 type stubSessionRepo struct{}
 
 func (s *stubSessionRepo) Create(session *domain.Session) error { return nil }
-func (s *stubSessionRepo) GetByCourseID(courseID int) ([]domain.Session, error) {
-	return nil, nil
+func (s *stubSessionRepo) GetByCourseID(courseID int, page, limit int) ([]domain.Session, int, error) {
+	return nil, 0, nil
 }
 func (s *stubSessionRepo) GetByID(id int) (*domain.Session, error) { return nil, nil }
 func (s *stubSessionRepo) Update(session *domain.Session) error    { return nil }
@@ -66,6 +66,9 @@ func (s *stubMaterialRepo) GetBySessionID(sessionID int) ([]domain.Material, err
 func (s *stubMaterialRepo) GetByCourseID(courseID int) ([]domain.SessionWithMaterials, error) {
 	return nil, nil
 }
+func (s *stubMaterialRepo) GetByTopicID(topicID int) ([]domain.Material, error) {
+	return nil, nil
+}
 func (s *stubMaterialRepo) GetByID(id int) (*domain.Material, error) { return nil, nil }
 func (s *stubMaterialRepo) Update(material *domain.Material) error   { return nil }
 func (s *stubMaterialRepo) Delete(id int) error                      { return nil }
@@ -73,8 +76,8 @@ func (s *stubMaterialRepo) Delete(id int) error                      { return ni
 type stubTaskRepo struct{}
 
 func (s *stubTaskRepo) Create(task *domain.Task) error { return nil }
-func (s *stubTaskRepo) GetByCourseID(courseID int) ([]domain.Task, error) {
-	return nil, nil
+func (s *stubTaskRepo) GetByCourseID(courseID int, page, limit int) ([]domain.Task, int, error) {
+	return nil, 0, nil
 }
 func (s *stubTaskRepo) GetByID(id int) (*domain.Task, error) { return nil, nil }
 func (s *stubTaskRepo) Update(task *domain.Task) error       { return nil }

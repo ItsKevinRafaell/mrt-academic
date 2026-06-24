@@ -2,6 +2,7 @@ package http
 
 import (
 	"database/sql"
+	"log"
 	"mrt-backend/internal/config"
 	"mrt-backend/internal/delivery/http/handler"
 	"mrt-backend/internal/delivery/http/middleware"
@@ -32,6 +33,7 @@ type Router struct {
 	calendarUsecase         *usecase.CalendarUsecase
 	boardGalleryUsecase     *usecase.BoardGalleryUsecase
 	bankSoalUsecase         *usecase.BankSoalUsecase
+	gcalUsecase             *usecase.GoogleCalendarUsecase
 	fonnteService           *usecase.FonnteService
 	authMiddleware          *middleware.AuthMiddleware
 	corsMiddleware          *middleware.CORSMiddleware
@@ -103,6 +105,7 @@ func NewRouter(cfg *config.Config, db *sql.DB) *Router {
 		calendarUsecase:         calendarUsecase,
 		boardGalleryUsecase:     boardGalleryUsecase,
 		bankSoalUsecase:         bankSoalUsecase,
+		gcalUsecase:             newGoogleCalendarUsecase(cfg, scheduleRepo, courseRepo),
 		fonnteService:           fonnteService,
 		authMiddleware:          middleware.NewAuthMiddleware(authUsecase),
 		corsMiddleware:          middleware.NewCORSMiddleware(cfg.AllowedOrigins),
@@ -237,6 +240,7 @@ func (r *Router) Setup() {
 	// Schedule routes
 	scheduleHandler := handler.NewScheduleHandler(r.scheduleUsecase)
 	r.mux.Handle("GET /api/v1/schedules", auth(http.HandlerFunc(scheduleHandler.GetAll)))
+	r.mux.Handle("GET /api/v1/schedules/current", auth(http.HandlerFunc(scheduleHandler.GetCurrentSchedule)))
 	r.mux.Handle("GET /api/v1/schedules/active", auth(http.HandlerFunc(scheduleHandler.GetActive)))
 	r.mux.Handle("GET /api/v1/schedules/{id}", auth(http.HandlerFunc(scheduleHandler.GetByID)))
 	r.mux.Handle("GET /api/v1/courses/{course_id}/schedules", auth(http.HandlerFunc(scheduleHandler.GetByCourseID)))
@@ -261,9 +265,9 @@ func (r *Router) Setup() {
 	r.mux.Handle("GET /api/v1/calendar/active", auth(http.HandlerFunc(calendarHandler.GetActiveSessions)))
 	r.mux.Handle("GET /api/v1/calendar/upcoming", auth(http.HandlerFunc(calendarHandler.GetUpcomingEvents)))
 	r.mux.Handle("GET /api/v1/calendar/{id}", auth(http.HandlerFunc(calendarHandler.GetEvent)))
-	r.mux.Handle("POST /api/v1/calendar", auth(admin(http.HandlerFunc(calendarHandler.CreateEvent))))
-	r.mux.Handle("PUT /api/v1/calendar/{id}", auth(admin(http.HandlerFunc(calendarHandler.UpdateEvent))))
-	r.mux.Handle("DELETE /api/v1/calendar/{id}", auth(admin(http.HandlerFunc(calendarHandler.DeleteEvent))))
+	r.mux.Handle("POST /api/v1/calendar", auth(http.HandlerFunc(calendarHandler.CreateEvent)))
+	r.mux.Handle("PUT /api/v1/calendar/{id}", auth(http.HandlerFunc(calendarHandler.UpdateEvent)))
+	r.mux.Handle("DELETE /api/v1/calendar/{id}", auth(http.HandlerFunc(calendarHandler.DeleteEvent)))
 	r.mux.Handle("PATCH /api/v1/calendar/{id}/active", auth(admin(http.HandlerFunc(calendarHandler.SetActiveSession))))
 
 	// Board Gallery routes
@@ -300,6 +304,29 @@ func (r *Router) Setup() {
 	notificationHandler := handler.NewNotificationHandler(r.fonnteService)
 	r.mux.Handle("POST /api/v1/notifications/send", auth(admin(http.HandlerFunc(notificationHandler.SendNotification))))
 	r.mux.Handle("POST /api/v1/notifications/task", auth(http.HandlerFunc(notificationHandler.SendTaskNotification)))
+
+	// Google Calendar routes (only if configured)
+	if r.gcalUsecase != nil {
+		gcalHandler := handler.NewGoogleCalendarHandler(r.gcalUsecase)
+		r.mux.Handle("POST /api/v1/calendar/sync", auth(admin(http.HandlerFunc(gcalHandler.Sync))))
+		r.mux.Handle("POST /api/v1/calendar/sync/webhook", auth(http.HandlerFunc(gcalHandler.WebhookSync)))
+		r.mux.Handle("GET /api/v1/calendar/events", auth(http.HandlerFunc(gcalHandler.GetEvents)))
+		r.mux.Handle("GET /api/v1/calendar/test", http.HandlerFunc(gcalHandler.TestConnection))
+	}
+}
+
+func newGoogleCalendarUsecase(cfg *config.Config, schedRepo domain.ScheduleRepository, courseRepo domain.CourseRepository) *usecase.GoogleCalendarUsecase {
+	if !cfg.HasGoogleCalendar() {
+		return nil
+	}
+	jsonKey := []byte(cfg.GoogleCalJSONKey)
+	gcal, err := usecase.NewGoogleCalendarUsecase(jsonKey, cfg.GoogleCalID, schedRepo, courseRepo)
+	if err != nil {
+		log.Printf("[gcal] failed to initialize: %v", err)
+		return nil
+	}
+	log.Printf("[gcal] initialized with calendar ID: %s", cfg.GoogleCalID)
+	return gcal
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {

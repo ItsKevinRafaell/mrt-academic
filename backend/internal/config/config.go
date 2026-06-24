@@ -14,6 +14,8 @@ type Config struct {
 	RateLimitRPM      int
 	SearchCacheTTL    time.Duration
 	DashboardCacheTTL time.Duration
+	GoogleCalJSONKey  string
+	GoogleCalID       string
 }
 
 func Load() *Config {
@@ -25,7 +27,23 @@ func Load() *Config {
 		RateLimitRPM:      parseInt(getEnv("RATE_LIMIT_RPM", "100")),
 		SearchCacheTTL:    parseDuration(getEnv("SEARCH_CACHE_TTL", "5m")),
 		DashboardCacheTTL: parseDuration(getEnv("DASHBOARD_CACHE_TTL", "1m")),
+		GoogleCalJSONKey:  loadGoogleCalJSONKey(),
+		GoogleCalID:       getEnv("GOOGLE_CAL_ID", ""),
 	}
+}
+
+// loadGoogleCalJSONKey tries path first, then falls back to inline JSON
+func loadGoogleCalJSONKey() string {
+	// Try file path first (safer)
+	path := getEnv("GOOGLE_CAL_JSON_KEY_PATH", "")
+	if path != "" {
+		data, err := os.ReadFile(path)
+		if err == nil {
+			return string(data)
+		}
+	}
+	// Fallback to inline JSON
+	return getEnv("GOOGLE_CAL_JSON_KEY", "")
 }
 
 func getEnv(key, fallback string) string {
@@ -51,4 +69,8 @@ func parseDuration(val string) time.Duration {
 
 func (c *Config) ServerAddr() string {
 	return fmt.Sprintf(":%s", c.Port)
+}
+
+func (c *Config) HasGoogleCalendar() bool {
+	return c.GoogleCalJSONKey != "" && c.GoogleCalID != ""
 }

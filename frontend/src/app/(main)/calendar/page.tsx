@@ -45,9 +45,14 @@ import {
   type CalendarEvent,
   type Schedule,
 } from '@/lib/api/calendar';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, subDays, isSameDay, parseISO } from 'date-fns';
+import { getCourses } from '@/lib/api/courses';
+import { getTopicsByCourse } from '@/lib/api/topics';
+import type { Course } from '@/types/course';
+import type { Topic } from '@/types/topic';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, subDays, isSameDay, parseISO, startOfYear, isBefore, isAfter } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useCawuStore } from '@/lib/stores/cawu-store';
 import { canManageCalendar } from '@/lib/rbac';
 
 type ViewMode = 'month' | 'week' | 'day';
@@ -69,6 +74,8 @@ export default function CalendarPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
@@ -86,12 +93,22 @@ export default function CalendarPage() {
     color: '',
     location: '',
     course_id: undefined as number | undefined,
+    topic_id: undefined as number | undefined,
     session_id: undefined as number | undefined,
+    is_recurring: false,
+    recurrence_pattern: '',
+    week_parity: '' as '' | 'odd' | 'even',
   });
+
+  const { selectedCawu } = useCawuStore();
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    getCourses(selectedCawu?.id).then(setCourses).catch(() => setCourses([]));
+  }, [selectedCawu]);
 
   // Auto-open add event dialog if ?action=add is in URL
   useEffect(() => {
@@ -108,7 +125,11 @@ export default function CalendarPage() {
         color: '',
         location: '',
         course_id: undefined,
+        topic_id: undefined,
         session_id: undefined,
+        is_recurring: false,
+        recurrence_pattern: '',
+        week_parity: '',
       });
       setIsEventDialogOpen(true);
     }
@@ -131,6 +152,57 @@ export default function CalendarPage() {
       setLoading(false);
     }
   };
+
+  const getWeekParityForDate = (date: Date): 'odd' | 'even' | null => {
+    const startStr = selectedCawu?.start_date;
+    if (!startStr) return null;
+    const start = new Date(startStr);
+    if (isNaN(start.getTime())) return null;
+    const diffDays = Math.floor((date.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const weekNumber = Math.floor(diffDays / 7);
+    return weekNumber % 2 === 0 ? 'odd' : 'even';
+  };
+
+  const matchesWeekParity = (event: CalendarEvent, date: Date): boolean => {
+    const parity = event.week_parity;
+    if (!parity) return true;
+    const dateParity = getWeekParityForDate(date);
+    if (!dateParity) return true;
+    return parity === dateParity;
+  };
+
+  const recurringEvents = useMemo(() => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    const viewStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const allDays = eachDayOfInterval({ start: viewStart, end: monthEnd });
+
+    const generated: CalendarEvent[] = [];
+
+    events.forEach((event) => {
+      if (!event.is_recurring) return;
+
+      const eventStart = parseISO(event.start_time);
+      const timeStr = format(eventStart, 'HH:mm');
+      const endStr = format(parseISO(event.end_time), 'HH:mm');
+
+      allDays.forEach((day) => {
+        if (day.getDay() !== eventStart.getDay()) return;
+        if (isBefore(day, new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate()))) return;
+        if (!matchesWeekParity(event, day)) return;
+
+        generated.push({
+          ...event,
+          id: `${event.id}-r-${format(day, 'yyyy-MM-dd')}`,
+          start_time: `${format(day, 'yyyy-MM-dd')}T${timeStr}`,
+          end_time: `${format(day, 'yyyy-MM-dd')}T${endStr}`,
+        });
+      });
+    });
+
+    return generated;
+  }, [events, currentDate, selectedCawu]);
 
   // Generate schedule events for current month
   const scheduleEvents = useMemo(() => {
@@ -167,10 +239,12 @@ export default function CalendarPage() {
     return generated;
   }, [schedules, currentDate]);
 
+  const nonRecurringEvents = useMemo(() => events.filter((e) => !e.is_recurring), [events]);
+
   // Combine events and schedules
   const allEvents = useMemo(() => {
-    return [...events, ...scheduleEvents];
-  }, [events, scheduleEvents]);
+    return [...nonRecurringEvents, ...recurringEvents, ...scheduleEvents];
+  }, [nonRecurringEvents, recurringEvents, scheduleEvents]);
 
   const handlePrevMonth = () => {
     if (viewMode === 'month') {
@@ -211,9 +285,18 @@ export default function CalendarPage() {
     setIsViewDialogOpen(true);
   };
 
+  const buildPayload = () => {
+    const { week_parity, ...rest } = formData;
+    return {
+      ...rest,
+      week_parity: week_parity === '' ? null : week_parity,
+      recurrence_pattern: rest.is_recurring ? (rest.recurrence_pattern || 'weekly') : '',
+    };
+  };
+
   const handleCreateEvent = async () => {
     try {
-      await createCalendarEvent(formData);
+      await createCalendarEvent(buildPayload());
       setIsEventDialogOpen(false);
       loadData();
       resetForm();
@@ -225,7 +308,7 @@ export default function CalendarPage() {
   const handleUpdateEvent = async () => {
     if (!selectedEvent) return;
     try {
-      await updateCalendarEvent(selectedEvent.id, formData);
+      await updateCalendarEvent(selectedEvent.id, buildPayload());
       setIsEventDialogOpen(false);
       setIsViewDialogOpen(false);
       loadData();
@@ -259,7 +342,11 @@ export default function CalendarPage() {
       color: '',
       location: '',
       course_id: undefined,
+      topic_id: undefined,
       session_id: undefined,
+      is_recurring: false,
+      recurrence_pattern: '',
+      week_parity: '',
     });
     setSelectedEvent(null);
   };
@@ -638,6 +725,113 @@ export default function CalendarPage() {
                 placeholder="Event location"
               />
             </div>
+
+            <div>
+              <Label htmlFor="course_id">Mata Kuliah</Label>
+              <Select
+                value={formData.course_id ? String(formData.course_id) : ''}
+                onValueChange={(value) => {
+                  const courseID = value ? Number(value) : undefined;
+                  setFormData((prev) => ({
+                    ...prev,
+                    course_id: courseID,
+                    topic_id: undefined,
+                  }));
+                  if (courseID) {
+                    const selected = courses.find((c) => c.id === courseID);
+                    getTopicsByCourse(courseID).then(setTopics).catch(() => setTopics([]));
+                    setFormData((prev) =>
+                      prev.title
+                        ? prev
+                        : { ...prev, title: selected ? `${selected.code} - ${selected.name}` : prev.title }
+                    );
+                  } else {
+                    setTopics([]);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih mata kuliah (opsional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.code} - {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {topics.length > 0 && (
+              <div>
+                <Label htmlFor="topic_id">Topik</Label>
+                <Select
+                  value={formData.topic_id ? String(formData.topic_id) : ''}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      topic_id: value ? Number(value) : undefined,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih topik (opsional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {topics.map((t) => (
+                      <SelectItem key={t.id} value={String(t.id)}>
+                        {t.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="rounded-lg border border-border p-3 space-y-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="is_recurring" className="text-sm font-medium">Ulang setiap minggu</Label>
+                <input
+                  id="is_recurring"
+                  type="checkbox"
+                  checked={formData.is_recurring}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      is_recurring: e.target.checked,
+                      recurrence_pattern: e.target.checked ? 'weekly' : '',
+                      week_parity: e.target.checked ? prev.week_parity : '',
+                    }))
+                  }
+                  className="h-4 w-4 rounded border-border"
+                />
+              </div>
+
+              {formData.is_recurring && (
+                <div>
+                  <Label htmlFor="week_parity" className="text-xs text-muted-foreground">Frekuensi minggu</Label>
+                  <Select
+                    value={formData.week_parity || 'both'}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        week_parity: value === 'both' ? '' : (value as 'odd' | 'even'),
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="both">Setiap minggu</SelectItem>
+                      <SelectItem value="odd">Minggu ganjil</SelectItem>
+                      <SelectItem value="even">Minggu genap</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           </div>
 
           <DialogFooter>
@@ -673,7 +867,11 @@ export default function CalendarPage() {
                         color: selectedEvent?.color || '',
                         location: selectedEvent?.location || '',
                         course_id: selectedEvent?.course_id,
+                        topic_id: (selectedEvent as any)?.topic_id,
                         session_id: selectedEvent?.session_id,
+                        is_recurring: selectedEvent?.is_recurring || false,
+                        recurrence_pattern: selectedEvent?.recurrence_pattern || '',
+                        week_parity: selectedEvent?.week_parity || '',
                       });
                       setIsViewDialogOpen(false);
                       setIsEventDialogOpen(true);

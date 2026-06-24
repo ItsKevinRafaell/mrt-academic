@@ -32,7 +32,7 @@ type Course struct {
 
 type CourseRepository interface {
 	Create(course *Course) error
-	GetAll(page, limit int) ([]Course, int, error)
+	GetAll(page, limit int, cawuID int) ([]Course, int, error)
 	GetByID(id int) (*Course, error)
 	Update(course *Course) error
 	Delete(id int) error

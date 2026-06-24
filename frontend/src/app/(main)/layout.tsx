@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { CommandBar } from "@/components/command-bar";
 import { CawuSwitcher } from "@/components/cawu-switcher";
 import { NotificationBell } from "@/components/NotificationBell";
+import { QuickPhotoFAB } from "@/components/QuickPhotoFAB";
 import { Search } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { Loader2 } from "lucide-react";
@@ -97,6 +98,9 @@ export default function MainLayout({
 
       {/* Command Bar (Ctrl+K) */}
       <CommandBar />
+
+      {/* Quick Photo FAB — shows when a class is currently active */}
+      <QuickPhotoFAB />
     </div>
   );
 }

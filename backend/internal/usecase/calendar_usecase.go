@@ -83,3 +83,7 @@ func (u *CalendarUsecase) DeleteEvent(ctx context.Context, id string) error {
 func (u *CalendarUsecase) SetActiveSession(ctx context.Context, id string, isActive bool) error {
 	return u.calendarRepo.SetActiveSession(ctx, id, isActive)
 }
+
+func (u *CalendarUsecase) UserExists(ctx context.Context, userID string) (bool, error) {
+	return u.calendarRepo.UserExists(ctx, userID)
+}

@@ -22,8 +22,8 @@ func (r *CalendarEventRepo) Create(ctx context.Context, event *domain.CalendarEv
 		INSERT INTO calendar_events (
 			id, title, description, event_type, start_time, end_time,
 			is_recurring, recurrence_pattern, course_id, topic_id, session_id,
-			is_active_session, created_by
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			is_active_session, created_by, week_parity
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		RETURNING created_at, updated_at
 	`
 
@@ -41,7 +41,21 @@ func (r *CalendarEventRepo) Create(ctx context.Context, event *domain.CalendarEv
 		event.SessionID,
 		event.IsActiveSession,
 		event.CreatedBy,
+		event.WeekParity,
 	).Scan(&event.CreatedAt, &event.UpdatedAt)
+}
+
+func (r *CalendarEventRepo) UserExists(ctx context.Context, userID string) (bool, error) {
+	const query = `SELECT 1 FROM users WHERE id = $1`
+	var exists int
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(&exists)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (r *CalendarEventRepo) GetByID(ctx context.Context, id string) (*domain.CalendarEvent, error) {
@@ -53,7 +67,8 @@ func (r *CalendarEventRepo) GetByID(ctx context.Context, id string) (*domain.Cal
 			COALESCE(c.name, '') as course_name,
 			COALESCE(t.title, '') as topic_title,
 			COALESCE(s.title, '') as session_title,
-			COALESCE(u.full_name, '') as creator_name
+			COALESCE(u.full_name, '') as creator_name,
+			ce.week_parity
 		FROM calendar_events ce
 		LEFT JOIN courses c ON ce.course_id = c.id
 		LEFT JOIN topics t ON ce.topic_id = t.id
@@ -83,6 +98,7 @@ func (r *CalendarEventRepo) GetByID(ctx context.Context, id string) (*domain.Cal
 		&event.TopicTitle,
 		&event.SessionTitle,
 		&event.CreatorName,
+		&event.WeekParity,
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -100,7 +116,8 @@ func (r *CalendarEventRepo) GetAll(ctx context.Context, filter *domain.CalendarE
 			COALESCE(c.name, '') as course_name,
 			COALESCE(t.title, '') as topic_title,
 			COALESCE(s.title, '') as session_title,
-			COALESCE(u.full_name, '') as creator_name
+			COALESCE(u.full_name, '') as creator_name,
+			ce.week_parity
 		FROM calendar_events ce
 		LEFT JOIN courses c ON ce.course_id = c.id
 		LEFT JOIN topics t ON ce.topic_id = t.id
@@ -179,6 +196,7 @@ func (r *CalendarEventRepo) GetAll(ctx context.Context, filter *domain.CalendarE
 			&topicTitle,
 			&sessionTitle,
 			&creatorName,
+			&e.WeekParity,
 		)
 		if err != nil {
 			fmt.Printf("[CalendarRepo] Scan error: %v\n", err)
@@ -230,7 +248,8 @@ func (r *CalendarEventRepo) GetActiveSessions(ctx context.Context) ([]domain.Cal
 			COALESCE(c.name, '') as course_name,
 			COALESCE(t.title, '') as topic_title,
 			COALESCE(s.title, '') as session_title,
-			COALESCE(u.full_name, '') as creator_name
+			COALESCE(u.full_name, '') as creator_name,
+			ce.week_parity
 		FROM calendar_events ce
 		LEFT JOIN courses c ON ce.course_id = c.id
 		LEFT JOIN topics t ON ce.topic_id = t.id
@@ -272,6 +291,7 @@ func (r *CalendarEventRepo) GetActiveSessions(ctx context.Context) ([]domain.Cal
 			&e.TopicTitle,
 			&e.SessionTitle,
 			&e.CreatorName,
+			&e.WeekParity,
 		)
 		if err != nil {
 			return nil, err
@@ -287,8 +307,8 @@ func (r *CalendarEventRepo) Update(ctx context.Context, event *domain.CalendarEv
 		UPDATE calendar_events SET
 			title = $1, description = $2, event_type = $3, start_time = $4, end_time = $5,
 			is_recurring = $6, recurrence_pattern = $7, course_id = $8, topic_id = $9, session_id = $10,
-			is_active_session = $11, updated_at = NOW()
-		WHERE id = $12
+			is_active_session = $11, week_parity = $12, updated_at = NOW()
+		WHERE id = $13
 		RETURNING updated_at
 	`
 
@@ -304,6 +324,7 @@ func (r *CalendarEventRepo) Update(ctx context.Context, event *domain.CalendarEv
 		event.TopicID,
 		event.SessionID,
 		event.IsActiveSession,
+		event.WeekParity,
 		event.ID,
 	).Scan(&event.UpdatedAt)
 }

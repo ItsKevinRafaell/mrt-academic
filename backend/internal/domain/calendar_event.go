@@ -18,6 +18,7 @@ type CalendarEvent struct {
 	TopicID             *int       `json:"topic_id,omitempty"`
 	SessionID           *int       `json:"session_id,omitempty"`
 	IsActiveSession     bool       `json:"is_active_session"`
+	WeekParity          *string    `json:"week_parity,omitempty"`
 	CreatedBy           string     `json:"created_by"`
 	CreatedAt           time.Time  `json:"created_at"`
 	UpdatedAt           time.Time  `json:"updated_at"`
