@@ -1,0 +1,40 @@
+# MRT Academic Management API - Systemd Service
+# Install: sudo cp mrt-api.service /etc/systemd/system/ && sudo systemctl daemon-reload
+
+[Unit]
+Description=MRT Academic Management API
+Documentation=https://github.com/org/mrt#readme
+After=network.target postgresql.service
+Wants=postgresql.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mrt
+Group=mrt
+WorkingDirectory=/opt/mrt/backend
+Environment=PORT=9090
+Environment=DB_HOST=localhost
+Environment=DB_PORT=5432
+Environment=DB_NAME=mrt
+Environment=DB_USER=mrt
+EnvironmentFile=/opt/mrt/backend/.env
+ExecStart=/opt/mrt/backend/bin/mrt-server
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mrt-api
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/mrt
+ReadWritePaths=/var/log/mrt
+
+[Install]
+WantedBy=multi-user.target

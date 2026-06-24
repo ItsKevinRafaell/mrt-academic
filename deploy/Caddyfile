@@ -1,0 +1,60 @@
+# MRT Production Caddyfile
+# Domain configuration
+{$MRT_DOMAIN:localhost} {
+    # Security headers
+    header {
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        -Server
+    }
+
+    # Gzip compression
+    encode gzip zstd
+
+    # Backend API (Go)
+    handle /api/* {
+        reverse_proxy localhost:9090 {
+            header_down X-Request-ID "{err.trace_id}"
+        }
+        # Timeouts
+        timeouts {
+            read 60s
+            write 300s
+            idle 5m
+        }
+    }
+
+    # Health check (public)
+    handle /health {
+        reverse_proxy localhost:9090
+    }
+
+    # Frontend static files (production build)
+    handle /* {
+        root * /opt/mrt/frontend/.next
+        try_files {path} /index.html
+        file_server
+        # Cache static assets
+        header @static {
+            Cache-Control "public, max-age=31536000, immutable"
+        }
+    }
+
+    # Log rotation
+    log {
+        output file /var/log/mrt/access.log {
+            roll_size 100MB
+            roll_keep 10
+            roll_keep_for 720h
+        }
+    }
+
+    # TLS (managed by Caddy)
+    tls {
+        protocols tls1.2 tls1.3
+        curves P-256 P-384 X25519
+    }
+}
