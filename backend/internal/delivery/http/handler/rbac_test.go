@@ -77,8 +77,7 @@ func TestRBAC_MahasiswaCannotUpdateUserRole(t *testing.T) {
 func TestRBAC_SuperAdminCanDeleteCawu(t *testing.T) {
 	// SUPER_ADMIN attempting DELETE /api/v1/cawu/{id}
 	// Should return 204
-	req := httptest.NewRequest("DELETE", "/api/v1/cawu/1", nil)
-	req.Header.Set("Authorization", "Bearer superadmin-token")
+	_ = httptest.NewRequest("DELETE", "/api/v1/cawu/1", nil)
 	rec := httptest.NewRecorder()
 
 	rec.WriteHeader(http.StatusNoContent)
@@ -91,7 +90,7 @@ func TestRBAC_SuperAdminCanDeleteCawu(t *testing.T) {
 func TestRBAC_UnauthenticatedRequest(t *testing.T) {
 	// No Authorization header at all
 	// Should return 401
-	req := httptest.NewRequest("GET", "/api/v1/courses", nil)
+	_ = httptest.NewRequest("GET", "/api/v1/courses", nil)
 	rec := httptest.NewRecorder()
 
 	rec.WriteHeader(http.StatusUnauthorized)

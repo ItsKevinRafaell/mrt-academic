@@ -171,7 +171,7 @@ func TestRequireAdmin_ForbiddenRole(t *testing.T) {
 }
 
 func TestCORS(t *testing.T) {
-	cors := NewCORSMiddleware()
+	cors := NewCORSMiddleware("*")
 
 	handler := cors.Handle(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
