@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { X, CheckSquare, Square, Calendar, Clock, ExternalLink } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { X, CheckSquare, Square, Calendar, Clock, ExternalLink, Image, Upload, Trash2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TaskPhoto } from "@/types/task";
+import { getTaskPhotos, uploadTaskPhoto, deleteTaskPhoto } from "@/lib/api/tasks";
 
 interface TaskDrawerProps {
   open: boolean;
@@ -25,12 +28,27 @@ export interface TaskDrawerTask {
     completed: boolean;
     completed_at?: string;
   };
+  photos?: TaskPhoto[];
 }
 
 export type TaskWithProgress = TaskDrawerTask;
 
 export function TaskDrawer({ open, onClose, task, onToggleComplete }: TaskDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photos, setPhotos] = useState<TaskPhoto[]>(task?.photos || []);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState<number | null>(null);
+
+  // Fetch photos when task changes
+  useEffect(() => {
+    if (task?.id) {
+      setPhotos(task.photos || []);
+      getTaskPhotos(task.id)
+        .then(setPhotos)
+        .catch(console.error);
+    }
+  }, [task?.id, task?.photos]);
 
   // Close on Escape key
   useEffect(() => {
@@ -62,6 +80,44 @@ export function TaskDrawer({ open, onClose, task, onToggleComplete }: TaskDrawer
   const handleToggle = () => {
     if (onToggleComplete) {
       onToggleComplete(task.id);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !task) return;
+
+    setUploading(true);
+    try {
+      const newPhoto = await uploadTaskPhoto(task.id, file);
+      setPhotos(prev => [newPhoto, ...prev]);
+      toast.success("Photo uploaded");
+    } catch (err) {
+      toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleDeletePhoto = async (photoId: number) => {
+    if (!confirm("Hapus foto ini?")) return;
+
+    setDeleting(photoId);
+    try {
+      await deleteTaskPhoto(task!.id, photoId);
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
+      toast.success("Photo deleted");
+    } catch (err) {
+      toast.error("Delete failed");
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -191,6 +247,68 @@ export function TaskDrawer({ open, onClose, task, onToggleComplete }: TaskDrawer
                 </a>
               </div>
             )}
+
+            {/* Photos */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Image className="h-4 w-4" />
+                  <span>Photos ({photos.length})</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleUploadClick}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  <span className="ml-2">Upload</span>
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </div>
+
+              {photos.length > 0 ? (
+                <div className="grid grid-cols-3 gap-2">
+                  {photos.map(photo => (
+                    <div key={photo.id} className="relative group">
+                      <img
+                        src={`http://localhost:8080${photo.image_url}`}
+                        alt={photo.caption || "Task photo"}
+                        className="w-full aspect-square object-cover rounded-lg border border-border"
+                      />
+                      <button
+                        onClick={() => handleDeletePhoto(photo.id)}
+                        disabled={deleting === photo.id}
+                        className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        {deleting === photo.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
+                      </button>
+                      {photo.caption && (
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          {photo.caption}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No photos attached</p>
+              )}
+            </div>
           </div>
 
           {/* Footer Actions */}

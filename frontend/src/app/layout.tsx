@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="id" suppressHydrationWarning>
       <body className={`${poppins.className} antialiased`}>
         <Providers>{children}</Providers>
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

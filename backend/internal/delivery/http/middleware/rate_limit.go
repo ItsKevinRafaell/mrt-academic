@@ -1,9 +1,8 @@
 package middleware
 
 import (
+	"net"
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -11,9 +10,10 @@ import (
 
 type RateLimiter struct {
 	requestsPerMinute int
-	bucketSize        int
-	clients           map[string]*clientBucket
-	mu                sync.RWMutex
+	bucketSize       int
+	clients          map[string]*clientBucket
+	mu               sync.RWMutex
+	trustedProxies   map[string]bool
 }
 
 type clientBucket struct {
@@ -22,20 +22,19 @@ type clientBucket struct {
 	mu         sync.Mutex
 }
 
-func NewRateLimiter() *RateLimiter {
-	rateLimitEnv := os.Getenv("RATE_LIMIT_RPM")
+func NewRateLimiter(trustedProxies []string) *RateLimiter {
 	requestsPerMinute := 100
+	proxyMap := make(map[string]bool)
 
-	if rateLimitEnv != "" {
-		if parsed, err := strconv.Atoi(rateLimitEnv); err == nil && parsed > 0 {
-			requestsPerMinute = parsed
-		}
+	for _, ip := range trustedProxies {
+		proxyMap[ip] = true
 	}
 
 	rl := &RateLimiter{
 		requestsPerMinute: requestsPerMinute,
 		bucketSize:        requestsPerMinute,
 		clients:           make(map[string]*clientBucket),
+		trustedProxies:    proxyMap,
 	}
 
 	go rl.cleanupExpiredClients()
@@ -45,7 +44,7 @@ func NewRateLimiter() *RateLimiter {
 
 func (rl *RateLimiter) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clientIP := getClientIP(r)
+		clientIP := rl.getClientIP(r)
 
 		if !rl.allow(clientIP) {
 			http.Error(w, `{"success":false,"message":"Too many requests","error_code":"ERR_RATE_LIMITED"}`, http.StatusTooManyRequests)
@@ -108,17 +107,30 @@ func (rl *RateLimiter) cleanupExpiredClients() {
 	}
 }
 
-func getClientIP(r *http.Request) string {
+func (rl *RateLimiter) getClientIP(r *http.Request) string {
+	clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		clientIP = r.RemoteAddr
+	}
+
 	xff := r.Header.Get("X-Forwarded-For")
-	if xff != "" {
+	if xff != "" && len(rl.trustedProxies) > 0 {
 		ips := strings.Split(xff, ",")
-		return strings.TrimSpace(ips[0])
+		for _, ip := range ips {
+			trimmed := strings.TrimSpace(ip)
+			if rl.trustedProxies[trimmed] {
+				continue
+			}
+			return trimmed
+		}
 	}
 
 	xri := r.Header.Get("X-Real-IP")
-	if xri != "" {
-		return xri
+	if xri != "" && len(rl.trustedProxies) > 0 {
+		if !rl.trustedProxies[xri] {
+			return xri
+		}
 	}
 
-	return r.RemoteAddr
+	return clientIP
 }

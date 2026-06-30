@@ -63,7 +63,7 @@ func (r *UserRepo) GetByID(id string) (*domain.User, error) {
 }
 
 func (r *UserRepo) GetAll() ([]domain.User, error) {
-	query := `SELECT id, nim, full_name, email, password_hash, created_at, updated_at
+	query := `SELECT id, nim, full_name, email, created_at, updated_at
 		FROM users ORDER BY created_at DESC`
 
 	rows, err := r.db.Query(query)
@@ -77,7 +77,7 @@ func (r *UserRepo) GetAll() ([]domain.User, error) {
 		user := domain.User{}
 		err := rows.Scan(
 			&user.ID, &user.NIM, &user.FullName, &user.Email,
-			&user.PasswordHash, &user.CreatedAt, &user.UpdatedAt,
+			&user.CreatedAt, &user.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err

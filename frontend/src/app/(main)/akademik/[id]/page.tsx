@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BookOpen,
@@ -33,7 +33,6 @@ import { getTasks, updateTaskProgress } from "@/lib/api/tasks";
 import { getQuestions } from "@/lib/api/questions";
 import { getGradeComponents, type ComponentWithGrade } from "@/lib/api/grades";
 import { GRADE_MAP } from "@/lib/constants/grade-map";
-import { TaskModal } from "@/components/tugas/task-modal";
 import { QuestionList } from "@/components/bank-soal/question-list";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { canManageAcademic } from "@/lib/rbac";
@@ -41,12 +40,12 @@ import { CourseDialog } from "./components/CourseDialog";
 import { TopicManagementDialog } from "@/components/admin/TopicManagementDialog";
 import { GradeComponentManagementDialog } from "@/components/admin/GradeComponentManagementDialog";
 import { useConfirm, ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { TaskDetailModal } from "@/components/TaskDetailModal";
 import type { Course, Task, TaskWithProgress, Question } from "@/types";
 
 export default function MatkulDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const matkulId = Number(params.id);
   const tabParam = searchParams.get("tab") || "materi";
 
@@ -62,7 +61,6 @@ export default function MatkulDetailPage() {
   const [gradeComponents, setGradeComponents] = useState<ComponentWithGrade[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(tabParam);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTopicDialog, setShowTopicDialog] = useState(false);
   const [showCourseDialog, setShowCourseDialog] = useState(false);
   const [monitoringTaskId, setMonitoringTaskId] = useState<number | null>(null);
@@ -316,7 +314,7 @@ export default function MatkulDetailPage() {
                 return (
                   <button
                     key={task.id}
-                    onClick={() => setSelectedTask(task)}
+                    onClick={() => router.push(`/tugas/${task.id}?back=/akademik/${matkulId}?tab=tugas`)}
                     className="flex items-center gap-2 lg:gap-3 w-full text-left rounded-lg border p-3 lg:p-4 hover:bg-accent transition-colors"
                   >
                     <div
@@ -481,16 +479,6 @@ export default function MatkulDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Task Detail Modal */}
-      {selectedTask && (
-        <TaskModal
-          task={selectedTask}
-          open={!!selectedTask}
-          onClose={() => setSelectedTask(null)}
-          onToggleComplete={handleToggleTask}
-        />
-      )}
 
       {/* Course Edit Dialog */}
       <CourseDialog

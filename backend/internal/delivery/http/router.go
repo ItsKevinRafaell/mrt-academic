@@ -33,6 +33,7 @@ type Router struct {
 	calendarUsecase         *usecase.CalendarUsecase
 	boardGalleryUsecase     *usecase.BoardGalleryUsecase
 	bankSoalUsecase         *usecase.BankSoalUsecase
+	taskPhotoUsecase        *usecase.TaskPhotoUsecase
 	gcalUsecase             *usecase.GoogleCalendarUsecase
 	fonnteService           *usecase.FonnteService
 	authMiddleware          *middleware.AuthMiddleware
@@ -77,6 +78,13 @@ func NewRouter(cfg *config.Config, db *sql.DB) *Router {
 	cawuUsecase := usecase.NewCawuUsecase(cawuRepo, settingsRepo)
 	scheduleRepo := postgres.NewScheduleRepo(db)
 	scheduleUsecase := usecase.NewScheduleUsecase(scheduleRepo, courseRepo)
+	taskPhotoRepo := postgres.NewTaskPhotoRepo(db)
+	uploadDir := cfg.UploadDir
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	storageService := usecase.NewLocalStorage(uploadDir)
+	taskPhotoUsecase := usecase.NewTaskPhotoUsecase(taskPhotoRepo, storageService)
 	calendarRepo := postgres.NewCalendarEventRepo(db)
 	calendarUsecase := usecase.NewCalendarUsecase(calendarRepo)
 	boardGalleryRepo := postgres.NewBoardGalleryRepository(db)
@@ -105,12 +113,13 @@ func NewRouter(cfg *config.Config, db *sql.DB) *Router {
 		calendarUsecase:         calendarUsecase,
 		boardGalleryUsecase:     boardGalleryUsecase,
 		bankSoalUsecase:         bankSoalUsecase,
+		taskPhotoUsecase:        taskPhotoUsecase,
 		gcalUsecase:             newGoogleCalendarUsecase(cfg, scheduleRepo, courseRepo),
 		fonnteService:           fonnteService,
 		authMiddleware:          middleware.NewAuthMiddleware(authUsecase),
 		corsMiddleware:          middleware.NewCORSMiddleware(cfg.AllowedOrigins),
 		compressionMiddleware:   middleware.NewCompressionMiddleware(),
-		rateLimiter:             middleware.NewRateLimiter(),
+		rateLimiter:             middleware.NewRateLimiter(cfg.TrustedProxyIPs),
 	}
 }
 
@@ -122,6 +131,7 @@ func (r *Router) Setup() {
 	userHandler := handler.NewUserHandler(r.userUsecase)
 	courseHandler := handler.NewCourseHandler(r.courseUsecase)
 	taskHandler := handler.NewTaskHandler(r.taskUsecase)
+	taskPhotoHandler := handler.NewTaskPhotoHandler(r.taskPhotoUsecase)
 	gradeHandler := handler.NewGradeHandler(r.gradeUsecase)
 	gradeComponentHandler := handler.NewGradeComponentHandler(r.gradeComponentUsecase)
 	eventHandler := handler.NewEventHandler(r.eventUsecase)
@@ -170,6 +180,11 @@ func (r *Router) Setup() {
 	r.mux.Handle("GET /api/v1/tasks/{id}/monitoring", auth(admin(http.HandlerFunc(taskHandler.GetTaskProgressSummary))))
 	r.mux.Handle("GET /api/v1/courses/{course_id}/tasks/monitoring", auth(admin(http.HandlerFunc(taskHandler.GetCourseProgressSummary))))
 	r.mux.Handle("GET /api/v1/tasks/{id}/detail", auth(admin(http.HandlerFunc(taskHandler.GetTaskDetail))))
+
+	// Task photos
+	r.mux.Handle("GET /api/v1/tasks/{id}/photos", auth(http.HandlerFunc(taskPhotoHandler.List)))
+	r.mux.Handle("POST /api/v1/tasks/{id}/photos", auth(admin(http.HandlerFunc(taskPhotoHandler.Upload))))
+	r.mux.Handle("DELETE /api/v1/tasks/{id}/photos/{photo_id}", auth(admin(http.HandlerFunc(taskPhotoHandler.Delete))))
 
 	r.mux.Handle("POST /api/v1/grades", auth(http.HandlerFunc(gradeHandler.Create)))
 	r.mux.Handle("POST /api/v1/courses/{course_id}/grades/bulk", auth(http.HandlerFunc(gradeHandler.BulkCreate)))

@@ -17,7 +17,6 @@ import {
 import { useCourses } from "@/lib/api/courses";
 import { updateTaskProgress, type TaskWithProgress } from "@/lib/api/tasks";
 import { useCawuStore } from "@/lib/stores/cawu-store";
-import { TaskModal } from "@/components/tugas/task-modal";
 import { useConfirm, ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function TasksPage() {
@@ -30,7 +29,6 @@ export default function TasksPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "completed" | "pending">("all");
   const [filterCourse, setFilterCourse] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"deadline-asc" | "deadline-desc" | "name">("deadline-asc");
-  const [selectedTask, setSelectedTask] = useState<TaskWithProgress | null>(null);
 
   useEffect(() => {
     loadAllTasks();
@@ -203,7 +201,7 @@ export default function TasksPage() {
                     className="h-7 w-7 rounded-md border-2 border-muted-foreground/40 hover:border-green-500 hover:bg-green-500/10 transition-colors shrink-0 flex items-center justify-center"
                     aria-label="Tandai selesai"
                   />
-                  <div className="flex-1 min-w-0" onClick={() => setSelectedTask(task)}>
+                  <div className="flex-1 min-w-0" onClick={() => router.push(`/tugas/${task.id}`)}>
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{task.title}</p>
                       {isOverdue(task.deadline) && (
@@ -227,7 +225,7 @@ export default function TasksPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => router.push(`/akademik/${task.course_id}?tab=tugas`)}
+                    onClick={() => router.push(`/tugas/${task.id}`)}
                     className="shrink-0"
                   >
                     Detail
@@ -260,7 +258,7 @@ export default function TasksPage() {
                   >
                     <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                   </button>
-                  <div className="flex-1 min-w-0" onClick={() => setSelectedTask(task)}>
+                  <div className="flex-1 min-w-0" onClick={() => router.push(`/tugas/${task.id}`)}>
                     <p className="font-medium line-through text-muted-foreground">{task.title}</p>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                       <span className="flex items-center gap-1">
@@ -283,6 +281,7 @@ export default function TasksPage() {
                   <Button
                     size="sm"
                     variant="ghost"
+                    onClick={() => router.push(`/tugas/${task.id}`)}
                     onClick={() => router.push(`/akademik/${task.course_id}?tab=tugas`)}
                   >
                     Detail
@@ -307,16 +306,6 @@ export default function TasksPage() {
             </p>
           </CardContent>
         </Card>
-      )}
-
-      {/* Task Modal */}
-      {selectedTask && (
-        <TaskModal
-          task={selectedTask}
-          open={!!selectedTask}
-          onClose={() => setSelectedTask(null)}
-          onToggleComplete={(id, completed) => handleToggle(id, completed)}
-        />
       )}
 
       <ConfirmDialog />

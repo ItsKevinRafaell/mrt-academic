@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -16,20 +17,55 @@ type Config struct {
 	DashboardCacheTTL time.Duration
 	GoogleCalJSONKey  string
 	GoogleCalID       string
+	TrustedProxyIPs   []string
+	UploadDir         string
 }
 
-func Load() *Config {
-	return &Config{
-		Port:              getEnv("PORT", "8080"),
-		DatabaseURL:       getEnv("DATABASE_URL", "postgres://mrt:secret@localhost:5432/mrt_db?sslmode=disable"),
-		JWTSecret:         getEnv("JWT_SECRET", "dev-secret-change-in-production"),
-		AllowedOrigins:    getEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
-		RateLimitRPM:      parseInt(getEnv("RATE_LIMIT_RPM", "100")),
-		SearchCacheTTL:    parseDuration(getEnv("SEARCH_CACHE_TTL", "5m")),
-		DashboardCacheTTL: parseDuration(getEnv("DASHBOARD_CACHE_TTL", "1m")),
-		GoogleCalJSONKey:  loadGoogleCalJSONKey(),
-		GoogleCalID:       getEnv("GOOGLE_CAL_ID", ""),
+func Load() (*Config, error) {
+	port := getEnv("PORT", "8080")
+	databaseURL := getEnv("DATABASE_URL", "postgres://mrt:secret@localhost:5432/mrt_db?sslmode=disable")
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET environment variable is required")
 	}
+	allowedOrigins := getEnv("ALLOWED_ORIGINS", "http://localhost:3000")
+	rateLimitRPM, err := parseInt(getEnv("RATE_LIMIT_RPM", "100"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid RATE_LIMIT_RPM: %v", err)
+	}
+	searchCacheTTL := parseDuration(getEnv("SEARCH_CACHE_TTL", "5m"))
+	dashboardCacheTTL := parseDuration(getEnv("DASHBOARD_CACHE_TTL", "1m"))
+	googleCalJSONKey := loadGoogleCalJSONKey()
+	googleCalID := getEnv("GOOGLE_CAL_ID", "")
+	trustedProxyIPs := parseProxyIPs(getEnv("TRUSTED_PROXY_IPS", ""))
+
+	return &Config{
+		Port:              port,
+		DatabaseURL:       databaseURL,
+		JWTSecret:         jwtSecret,
+		AllowedOrigins:    allowedOrigins,
+		RateLimitRPM:      rateLimitRPM,
+		SearchCacheTTL:    searchCacheTTL,
+		DashboardCacheTTL: dashboardCacheTTL,
+		GoogleCalJSONKey:  googleCalJSONKey,
+		GoogleCalID:       googleCalID,
+		TrustedProxyIPs:   trustedProxyIPs,
+		UploadDir:         getEnv("UPLOAD_DIR", "./uploads"),
+	}, nil
+}
+
+func parseProxyIPs(ips string) []string {
+	if ips == "" {
+		return nil
+	}
+	result := []string{}
+	for _, ip := range strings.Split(ips, ",") {
+		trimmed := strings.TrimSpace(ip)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 // loadGoogleCalJSONKey tries path first, then falls back to inline JSON
@@ -53,10 +89,13 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func parseInt(val string) int {
+func parseInt(val string) (int, error) {
 	var result int
-	fmt.Sscanf(val, "%d", &result)
-	return result
+	n, err := fmt.Sscanf(val, "%d", &result)
+	if err != nil || n != 1 {
+		return 0, fmt.Errorf("cannot parse '%s' as integer", val)
+	}
+	return result, nil
 }
 
 func parseDuration(val string) time.Duration {

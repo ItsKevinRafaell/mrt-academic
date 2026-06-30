@@ -17,7 +17,11 @@ func main() {
 
 	email := os.Args[1]
 
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
+		os.Exit(1)
+	}
 	db, err := postgres.NewConnection(cfg.DatabaseURL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Database connection failed: %v\n", err)

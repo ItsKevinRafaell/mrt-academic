@@ -22,32 +22,24 @@ func (r *DashboardRepo) GetSummary(userID string) (*domain.DashboardSummary, err
 		RecentActivities: []domain.Activity{},
 	}
 
-	courseQuery := `
-		SELECT COUNT(*)
-		FROM courses
+	countQuery := `
+		WITH task_counts AS (
+			SELECT
+				COUNT(*) FILTER (WHERE tp.completed = false OR tp.completed IS NULL) as pending,
+				COUNT(*) FILTER (WHERE tp.completed = true) as completed
+			FROM tasks t
+			LEFT JOIN task_progress tp ON t.id = tp.task_id AND tp.user_id = $1
+		)
+		SELECT
+			(SELECT COUNT(*) FROM courses),
+			(SELECT pending FROM task_counts),
+			(SELECT completed FROM task_counts)
 	`
-	err := r.db.QueryRow(courseQuery).Scan(&summary.TotalCourses)
-	if err != nil {
-		return nil, err
-	}
-
-	pendingQuery := `
-		SELECT COUNT(*)
-		FROM tasks t
-		LEFT JOIN task_progress tp ON t.id = tp.task_id AND tp.user_id = $1
-		WHERE tp.completed = false OR tp.completed IS NULL
-	`
-	err = r.db.QueryRow(pendingQuery, userID).Scan(&summary.PendingTasks)
-	if err != nil {
-		return nil, err
-	}
-
-	completedQuery := `
-		SELECT COUNT(*)
-		FROM task_progress
-		WHERE user_id = $1 AND completed = true
-	`
-	err = r.db.QueryRow(completedQuery, userID).Scan(&summary.CompletedTasks)
+	err := r.db.QueryRow(countQuery, userID).Scan(
+		&summary.TotalCourses,
+		&summary.PendingTasks,
+		&summary.CompletedTasks,
+	)
 	if err != nil {
 		return nil, err
 	}

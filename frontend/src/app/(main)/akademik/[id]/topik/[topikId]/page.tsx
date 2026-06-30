@@ -37,7 +37,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { NotesPage } from "@/components/NotesPage";
 import { getTopicDetails } from "@/lib/api/topics";
 import type { Topic } from "@/types";
 import { getMaterialsByTopic, createMaterialForTopic, deleteMaterial, type Material } from "@/lib/api/materials";
@@ -424,16 +423,6 @@ export default function TopikDetailPage() {
         <LiveBoardGalleryTopic topicId={topicId} courseId={courseId} />
       </section>
 
-      {/* Notes for this topic */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl lg:text-2xl font-bold">Catatan Topik Ini</h2>
-          <Button variant="outline" size="sm" onClick={() => router.push(`/catatan`)}>
-            Lihat Semua Catatan
-          </Button>
-        </div>
-        <NotesPage courseId={courseId} topikId={topicId} />
-      </section>
     </PageContainer>
   );
 }
