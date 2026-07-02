@@ -282,7 +282,6 @@ export default function TasksPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => router.push(`/tugas/${task.id}`)}
-                    onClick={() => router.push(`/akademik/${task.course_id}?tab=tugas`)}
                   >
                     Detail
                   </Button>

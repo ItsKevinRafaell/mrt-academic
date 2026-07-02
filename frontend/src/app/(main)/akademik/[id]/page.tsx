@@ -8,7 +8,7 @@ import {
   Link as LinkIcon,
   Video,
   Image,
-  Presentation,
+  Trophy,
   File,
   ClipboardList,
   HelpCircle,
@@ -17,6 +17,7 @@ import {
   Pencil,
   Trash2,
   Users,
+  Presentation,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,8 @@ import { getQuestions } from "@/lib/api/questions";
 import { getGradeComponents, type ComponentWithGrade } from "@/lib/api/grades";
 import { GRADE_MAP } from "@/lib/constants/grade-map";
 import { QuestionList } from "@/components/bank-soal/question-list";
+import { PresentationTab } from "@/components/presentation/PresentationTab";
+import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { canManageAcademic } from "@/lib/rbac";
 import { CourseDialog } from "./components/CourseDialog";
@@ -50,7 +53,7 @@ export default function MatkulDetailPage() {
   const tabParam = searchParams.get("tab") || "materi";
 
   const { role } = useAuthStore();
-  const isKurikulum = role && canManageAcademic(role);
+  const isKurikulum = !!(role && canManageAcademic(role));
   const { confirm, ConfirmDialog } = useConfirm();
 
   // React Query hooks with caching
@@ -256,6 +259,10 @@ export default function MatkulDetailPage() {
             <TabsTrigger value="nilai" className="flex items-center gap-1 px-3 py-1.5 text-xs whitespace-nowrap data-[state=active]:bg-background">
               <Calculator className="h-3.5 w-3.5" />
               Nilai
+            </TabsTrigger>
+            <TabsTrigger value="poin" className="flex items-center gap-1 px-3 py-1.5 text-xs whitespace-nowrap data-[state=active]:bg-background">
+              <Trophy className="h-3.5 w-3.5" />
+              Poin
             </TabsTrigger>
           </TabsList>
         </div>
@@ -477,6 +484,11 @@ export default function MatkulDetailPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Presentasi Tab */}
+        <TabsContent value="poin" className="mt-4">
+          <PresentationTab courseId={matkulId} isKurikulum={isKurikulum} />
         </TabsContent>
       </Tabs>
 

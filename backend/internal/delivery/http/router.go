@@ -34,6 +34,8 @@ type Router struct {
 	boardGalleryUsecase     *usecase.BoardGalleryUsecase
 	bankSoalUsecase         *usecase.BankSoalUsecase
 	taskPhotoUsecase        *usecase.TaskPhotoUsecase
+	presentationUsecase     *usecase.PresentationUsecase
+	notificationRepo        *postgres.NotificationRepo
 	gcalUsecase             *usecase.GoogleCalendarUsecase
 	fonnteService           *usecase.FonnteService
 	authMiddleware          *middleware.AuthMiddleware
@@ -90,6 +92,9 @@ func NewRouter(cfg *config.Config, db *sql.DB) *Router {
 	boardGalleryRepo := postgres.NewBoardGalleryRepository(db)
 	boardGalleryUsecase := usecase.NewBoardGalleryUsecase(boardGalleryRepo)
 	bankSoalUsecase := usecase.NewBankSoalUsecase(examArchiveRepo, simulationRepo, simulationQuestionRepo)
+	presentationRepo := postgres.NewPresentationRepo(db)
+	notificationRepo := postgres.NewNotificationRepo(db)
+	presentationUsecase := usecase.NewPresentationUsecase(presentationRepo, notificationRepo)
 	fonnteToken := os.Getenv("FONNTE_TOKEN")
 	fonnteService := usecase.NewFonnteService(fonnteToken)
 
@@ -114,6 +119,7 @@ func NewRouter(cfg *config.Config, db *sql.DB) *Router {
 		boardGalleryUsecase:     boardGalleryUsecase,
 		bankSoalUsecase:         bankSoalUsecase,
 		taskPhotoUsecase:        taskPhotoUsecase,
+		presentationUsecase:     presentationUsecase,
 		gcalUsecase:             newGoogleCalendarUsecase(cfg, scheduleRepo, courseRepo),
 		fonnteService:           fonnteService,
 		authMiddleware:          middleware.NewAuthMiddleware(authUsecase),
@@ -133,11 +139,13 @@ func (r *Router) Setup() {
 	taskHandler := handler.NewTaskHandler(r.taskUsecase)
 	taskPhotoHandler := handler.NewTaskPhotoHandler(r.taskPhotoUsecase)
 	gradeHandler := handler.NewGradeHandler(r.gradeUsecase)
+	presentationHandler := handler.NewPresentationHandler(r.presentationUsecase)
 	gradeComponentHandler := handler.NewGradeComponentHandler(r.gradeComponentUsecase)
 	eventHandler := handler.NewEventHandler(r.eventUsecase)
 	dashboardHandler := handler.NewDashboardHandler(r.dashboardUsecase)
 	searchHandler := handler.NewSearchHandler(r.searchUsecase)
 	excelHandler := handler.NewExcelHandler(r.excelUsecase)
+	notificationHandler := handler.NewNotificationHandler(r.notificationRepo)
 
 	auth := r.authMiddleware.Authenticate
 	admin := r.authMiddleware.RequireAdmin()
@@ -185,6 +193,24 @@ func (r *Router) Setup() {
 	r.mux.Handle("GET /api/v1/tasks/{id}/photos", auth(http.HandlerFunc(taskPhotoHandler.List)))
 	r.mux.Handle("POST /api/v1/tasks/{id}/photos", auth(admin(http.HandlerFunc(taskPhotoHandler.Upload))))
 	r.mux.Handle("DELETE /api/v1/tasks/{id}/photos/{photo_id}", auth(admin(http.HandlerFunc(taskPhotoHandler.Delete))))
+
+	// Presentation system
+	r.mux.Handle("GET /api/v1/courses/{id}/presentation/config", auth(http.HandlerFunc(presentationHandler.GetConfig)))
+	r.mux.Handle("PUT /api/v1/courses/{id}/presentation/config", auth(admin(http.HandlerFunc(presentationHandler.UpdateConfig))))
+	r.mux.Handle("GET /api/v1/courses/{id}/presentation/priority", auth(http.HandlerFunc(presentationHandler.GetPriorityList)))
+	r.mux.Handle("POST /api/v1/courses/{id}/presentation/priority/{userId}", auth(admin(http.HandlerFunc(presentationHandler.AddPriority))))
+	r.mux.Handle("DELETE /api/v1/courses/{id}/presentation/priority/{userId}", auth(admin(http.HandlerFunc(presentationHandler.RemovePriority))))
+	r.mux.Handle("PUT /api/v1/courses/{id}/presentation/priority/reorder", auth(admin(http.HandlerFunc(presentationHandler.ReorderPriority))))
+	r.mux.Handle("GET /api/v1/courses/{id}/presentation/next", auth(http.HandlerFunc(presentationHandler.GetNext)))
+	r.mux.Handle("POST /api/v1/courses/{id}/presentation/record", auth(admin(http.HandlerFunc(presentationHandler.RecordPresentation))))
+	r.mux.Handle("GET /api/v1/courses/{id}/presentation/leaderboard", auth(http.HandlerFunc(presentationHandler.GetLeaderboard)))
+	r.mux.Handle("GET /api/v1/courses/{id}/presentation/history/{userId}", auth(http.HandlerFunc(presentationHandler.GetStudentHistory)))
+	r.mux.Handle("GET /api/v1/presentation/students", auth(http.HandlerFunc(presentationHandler.GetAllStudents)))
+	// Pending presentation workflow
+	r.mux.Handle("GET /api/v1/courses/{id}/presentation/pending", auth(admin(http.HandlerFunc(presentationHandler.GetPendingPresentations))))
+	r.mux.Handle("POST /api/v1/courses/{id}/presentation/request", auth(http.HandlerFunc(presentationHandler.RequestPresentation)))
+	r.mux.Handle("POST /api/v1/courses/{id}/presentation/pending/{pid}/approve", auth(admin(http.HandlerFunc(presentationHandler.ApprovePresentation))))
+	r.mux.Handle("POST /api/v1/courses/{id}/presentation/pending/{pid}/reject", auth(admin(http.HandlerFunc(presentationHandler.RejectPresentation))))
 
 	r.mux.Handle("POST /api/v1/grades", auth(http.HandlerFunc(gradeHandler.Create)))
 	r.mux.Handle("POST /api/v1/courses/{course_id}/grades/bulk", auth(http.HandlerFunc(gradeHandler.BulkCreate)))
@@ -316,9 +342,10 @@ func (r *Router) Setup() {
 	r.mux.Handle("DELETE /api/v1/bank-soal/questions/{id}", auth(admin(http.HandlerFunc(bankSoalHandler.DeleteQuestion))))
 
 	// Notification routes
-	notificationHandler := handler.NewNotificationHandler(r.fonnteService)
-	r.mux.Handle("POST /api/v1/notifications/send", auth(admin(http.HandlerFunc(notificationHandler.SendNotification))))
-	r.mux.Handle("POST /api/v1/notifications/task", auth(http.HandlerFunc(notificationHandler.SendTaskNotification)))
+	r.mux.Handle("GET /api/v1/notifications", auth(http.HandlerFunc(notificationHandler.GetNotifications)))
+	r.mux.Handle("PUT /api/v1/notifications/{id}/read", auth(http.HandlerFunc(notificationHandler.MarkRead)))
+	r.mux.Handle("PUT /api/v1/notifications/read-all", auth(http.HandlerFunc(notificationHandler.MarkAllRead)))
+	r.mux.Handle("GET /api/v1/notifications/unread-count", auth(http.HandlerFunc(notificationHandler.GetUnreadCount)))
 
 	// Google Calendar routes (only if configured)
 	if r.gcalUsecase != nil {

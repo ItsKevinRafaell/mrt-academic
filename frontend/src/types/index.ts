@@ -16,6 +16,15 @@ export type { Grade, IPKEntry, IPKCawu, IPKSummary, IPKData, GradeComponent, Gra
 export type { BaseSuccessResponse, BaseErrorResponse, ApiResponse } from "./api";
 export type { Topic, TopicWithSessions } from "./topic";
 export type { Schedule, ScheduleInput } from "./schedule";
+export type {
+  PresentationMode,
+  PresentationConfig,
+  PriorityStudent,
+  PresentationRecord,
+  LeaderboardEntry,
+  Student,
+  PendingPresentation,
+} from "./presentation";
 
 // Dashboard types
 export interface DashboardData {

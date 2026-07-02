@@ -1,66 +1,79 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
+	"strconv"
 
-	"mrt-backend/internal/usecase"
+	"mrt-backend/internal/delivery/http/middleware"
+	"mrt-backend/internal/domain"
+	"mrt-backend/internal/repository/postgres"
 )
 
 type NotificationHandler struct {
-	fonnte *usecase.FonnteService
+	repo *postgres.NotificationRepo
 }
 
-func NewNotificationHandler(fonnte *usecase.FonnteService) *NotificationHandler {
-	return &NotificationHandler{fonnte: fonnte}
+func NewNotificationHandler(repo *postgres.NotificationRepo) *NotificationHandler {
+	return &NotificationHandler{repo: repo}
 }
 
-type sendRequest struct {
-	Phone   string `json:"phone"`
-	Message string `json:"message"`
-}
-
-func (h *NotificationHandler) SendNotification(w http.ResponseWriter, r *http.Request) {
-	var req sendRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		Error(w, http.StatusBadRequest, "Invalid request body", "ERR_VALIDATION")
-		return
+func (h *NotificationHandler) GetNotifications(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	limitStr := r.URL.Query().Get("limit")
+	limit := 20
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil {
+			limit = l
+		}
 	}
 
-	if err := h.fonnte.Send(req.Phone, req.Message); err != nil {
-		Error(w, http.StatusInternalServerError, "Failed to send notification", "ERR_INTERNAL_SERVER")
-		return
-	}
-
-	Success(w, http.StatusOK, "Notification sent", nil)
-}
-
-type reminderRequest struct {
-	Phone    string `json:"phone"`
-	TaskName string `json:"task_name"`
-	Deadline string `json:"deadline"`
-	Type     string `json:"type"` // "reminder" or "overdue"
-}
-
-func (h *NotificationHandler) SendTaskNotification(w http.ResponseWriter, r *http.Request) {
-	var req reminderRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		Error(w, http.StatusBadRequest, "Invalid request body", "ERR_VALIDATION")
-		return
-	}
-
-	var err error
-	switch req.Type {
-	case "overdue":
-		err = h.fonnte.SendTaskOverdue(req.Phone, req.TaskName)
-	default:
-		err = h.fonnte.SendTaskReminder(req.Phone, req.TaskName, req.Deadline)
-	}
-
+	notifications, err := h.repo.GetByUser(userID, limit)
 	if err != nil {
-		Error(w, http.StatusInternalServerError, "Failed to send notification", "ERR_INTERNAL_SERVER")
+		writeError(w, http.StatusInternalServerError, "ERR_GET_NOTIFICATIONS", err.Error())
 		return
 	}
 
-	Success(w, http.StatusOK, "Task notification sent", nil)
+	if notifications == nil {
+		notifications = []domain.Notification{}
+	}
+	writeJSON(w, http.StatusOK, "OK", notifications)
+}
+
+func (h *NotificationHandler) MarkRead(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "ERR_INVALID_ID", "Invalid notification ID")
+		return
+	}
+
+	if err := h.repo.MarkRead(id); err != nil {
+		writeError(w, http.StatusInternalServerError, "ERR_MARK_READ", err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, "Marked as read", nil)
+}
+
+func (h *NotificationHandler) MarkAllRead(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+
+	if err := h.repo.MarkAllRead(userID); err != nil {
+		writeError(w, http.StatusInternalServerError, "ERR_MARK_ALL_READ", err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, "All marked as read", nil)
+}
+
+func (h *NotificationHandler) GetUnreadCount(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+
+	count, err := h.repo.GetUnreadCount(userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "ERR_GET_COUNT", err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, "OK", count)
 }
